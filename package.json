@@ -1,0 +1,69 @@
+{
+  "name": "epic-state",
+  "description": "Reactive state management for frontend libraries.",
+  "version": "0.0.0-development",
+  "scripts": {
+    "build": "padua build",
+    "start": "padua watch",
+    "test": "vitest run --dir test"
+  },
+  "dependencies": {
+    "proxy-compare": "2.5.1",
+    "use-sync-external-store": "1.2.0"
+  },
+  "peerDependencies": {
+    "@types/react": ">= 18",
+    "react": ">= 18"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "types": "./dist/src/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "state",
+    "management",
+    "frontend",
+    "web",
+    "store"
+  ],
+  "devDependencies": {
+    "@redux-devtools/extension": "^3.2.5",
+    "@testing-library/react": "^14.0.0",
+    "@types/jsdom": "^21.1.1",
+    "@types/react": "^18.2.20",
+    "@types/react-dom": "^18.2.7",
+    "@types/use-sync-external-store": "^0.0.3",
+    "jsdom": "^22.1.0",
+    "json": "^11.0.0",
+    "padua": "^2.0.1",
+    "proxy-memoize": "^2.0.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "ts-expect": "^1.3.0",
+    "vitest": "0.34.2"
+  },
+  "prettier": "padua/configuration/.prettierrc.json",
+  "eslintConfig": {
+    "extends": "./node_modules/padua/configuration/eslint.cjs"
+  },
+  "engines": {
+    "node": ">= 16"
+  },
+  "peerDependenciesMeta": {
+    "@types/react": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  }
+}
