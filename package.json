@@ -2,6 +2,9 @@
   "name": "epic-state",
   "description": "Reactive state management for frontend libraries.",
   "version": "0.0.0-development",
+  "repository": "github:tobua/epic-state",
+  "license": "MIT",
+  "author": "Matthias Giger",
   "scripts": {
     "build": "padua build",
     "start": "padua watch",
@@ -54,6 +57,9 @@
   "prettier": "padua/configuration/.prettierrc.json",
   "eslintConfig": {
     "extends": "./node_modules/padua/configuration/eslint.cjs"
+  },
+  "publishConfig": {
+    "provenance": false
   },
   "engines": {
     "node": ">= 16"
