@@ -12,6 +12,7 @@ import {
   Snapshot,
 } from './types'
 import { isObject } from './helper'
+import { proxyMap, proxySet } from './polyfill'
 
 // Shared State, Map with links to all states created.
 const proxyStateMap = new WeakMap<ProxyObject, ProxyState>()
@@ -32,6 +33,8 @@ const canProxy = (x: unknown) =>
   !(x instanceof String) &&
   !(x instanceof RegExp) &&
   !(x instanceof ArrayBuffer)
+
+const canPolyfill = (x: unknown) => x instanceof Map || x instanceof Set
 
 const defaultHandlePromise = <P extends Promise<any>>(
   promise: P & {
@@ -95,7 +98,8 @@ const proxyCache = new WeakMap<object, ProxyObject>()
 
 const versionHolder = [1, 1] as [number, number]
 
-const proxyFunction = <T extends object>(initialObject: T): T => {
+// proxy function renamed to state (proxy as hidden implementation detail).
+export function state<T extends object>(initialObject: T = {} as T): T {
   if (!isObject(initialObject)) {
     throw new Error('object required')
   }
@@ -216,7 +220,13 @@ const proxyFunction = <T extends object>(initialObject: T): T => {
           })
       } else {
         if (!proxyStateMap.has(value) && canProxy(value)) {
-          nextValue = proxyFunction(value)
+          nextValue = state(value)
+        } else if (canPolyfill(value)) {
+          if (value instanceof Map) {
+            nextValue = proxyMap(value)
+          } else {
+            nextValue = proxySet(value)
+          }
         }
         const childProxyState = !refSet.has(nextValue) && proxyStateMap.get(nextValue)
         if (childProxyState) {
@@ -244,11 +254,6 @@ const proxyFunction = <T extends object>(initialObject: T): T => {
     Object.defineProperty(baseObject, key, desc)
   })
   return proxyObject
-}
-
-// proxy function renamed to state (proxy as hidden implementation detail).
-export function state<T extends object>(initialObject: T = {} as T): T {
-  return proxyFunction(initialObject)
 }
 
 export function subscribe<T extends object>(

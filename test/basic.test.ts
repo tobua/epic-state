@@ -1,6 +1,5 @@
 import { expect, test, vi } from 'vitest'
-import { state, subscribe, snapshot, getVersion, remove } from '../index'
-import { proxyMap, proxySet } from '../src/vanilla/utils'
+import { state, subscribe, snapshot, getVersion, remove, proxyMap, proxySet } from '../index'
 
 const process = () =>
   new Promise((done) => {
@@ -166,13 +165,13 @@ test('Arrays, Maps and Sets are also tracked.', async () => {
   const root = state({
     array: [1, 2, 3],
     // TODO automatically transform Map and Set.
-    map: proxyMap<string, string | number | boolean>([
+    map: new Map<string, string | { value: number } | boolean>([
       ['name', 'John'],
-      ['age', 30],
+      ['age', { value: 30 }],
       ['city', 'New York'],
       ['isStudent', false],
     ]),
-    set: proxySet(['apple', 'banana', 'cherry', 'apple']),
+    set: new Set(['apple', 'banana', 'cherry', 'apple']),
   })
 
   subscribe(root, subscribeMock)
@@ -180,6 +179,10 @@ test('Arrays, Maps and Sets are also tracked.', async () => {
   root.array.push(4)
   root.map.set('city', 'Los Angeles')
   root.set.add('fig')
+
+  const age = root.map.get('age') as { value: number }
+  // TODO change isn't tracked.
+  age.value += 1
 
   await process()
 
@@ -190,6 +193,22 @@ test('Arrays, Maps and Sets are also tracked.', async () => {
   // TODO map and set aren't tracked.
   expect(subscribeMock.mock.calls[1]).toBe(undefined)
   expect(subscribeMock.mock.calls[2]).toBe(undefined)
+})
+
+// TODO doesn't work yet.
+test.skip('Map/Set polyfill works at the top-level.', async () => {
+  const subscribeMock = vi.fn()
+  const root = state(
+    new Set([{ name: 'apple' }, { name: 'banana' }, { name: 'cherry' }, { name: 'apple' }])
+  )
+
+  subscribe(root, subscribeMock)
+
+  root.add({ name: 'fig' })
+
+  const element = root.values().next()
+
+  await process()
 })
 
 test('Works with classes.', async () => {
