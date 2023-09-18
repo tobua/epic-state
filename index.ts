@@ -4,7 +4,7 @@ import {
   CreateSnapshot,
   HandlePromise,
   Listener,
-  Op,
+  Operation,
   Path,
   ProxyObject,
   ProxyState,
@@ -109,10 +109,10 @@ export function state<T extends object>(initialObject: T = {} as T): T {
   }
   let version = versionHolder[0]
   const listeners = new Set<Listener>()
-  const notifyUpdate = (op: Op, nextVersion = ++versionHolder[0]) => {
+  const notifyUpdate = (operation: Operation, nextVersion = ++versionHolder[0]) => {
     if (version !== nextVersion) {
       version = nextVersion
-      listeners.forEach((listener) => listener(op, nextVersion))
+      listeners.forEach((listener) => listener(operation, nextVersion))
     }
   }
   let checkVersion = versionHolder[1]
@@ -130,10 +130,10 @@ export function state<T extends object>(initialObject: T = {} as T): T {
   }
   const createPropListener =
     (prop: string | symbol): Listener =>
-    (op, nextVersion) => {
-      const newOp: Op = [...op]
-      newOp[1] = [prop, ...(newOp[1] as Path)]
-      notifyUpdate(newOp, nextVersion)
+    (operation, nextVersion) => {
+      const newOperation: Operation = [...operation]
+      newOperation[1] = [prop, ...(newOperation[1] as Path)]
+      notifyUpdate(newOperation, nextVersion)
     }
   const propProxyStates = new Map<string | symbol, readonly [ProxyState, RemoveListener?]>()
   const addPropListener = (prop: string | symbol, propProxyState: ProxyState) => {
@@ -182,18 +182,23 @@ export function state<T extends object>(initialObject: T = {} as T): T {
     ? []
     : Object.create(Object.getPrototypeOf(initialObject))
   const handler: ProxyHandler<T> = {
-    deleteProperty(target: T, prop: string | symbol) {
-      const prevValue = Reflect.get(target, prop)
-      removePropListener(prop)
-      const deleted = Reflect.deleteProperty(target, prop)
+    deleteProperty(target, property) {
+      const prevValue = Reflect.get(target, property)
+      removePropListener(property)
+      const deleted = Reflect.deleteProperty(target, property)
       if (deleted) {
-        notifyUpdate(['delete', [prop], prevValue])
+        notifyUpdate(['delete', [property], prevValue])
       }
       return deleted
     },
-    set(target: T, prop: string | symbol, value: any, receiver: object) {
-      const hasPrevValue = Reflect.has(target, prop)
-      const prevValue = Reflect.get(target, prop, receiver)
+    get(target, property, receiver) {
+      const value = Reflect.get(target, property, receiver)
+      notifyUpdate(['get', [property], value])
+      return value
+    },
+    set(target, property, value, receiver: object) {
+      const hasPrevValue = Reflect.has(target, property)
+      const prevValue = Reflect.get(target, property, receiver) // Reflect skips other traps.
       if (
         hasPrevValue &&
         (objectIs(prevValue, value) ||
@@ -201,7 +206,7 @@ export function state<T extends object>(initialObject: T = {} as T): T {
       ) {
         return true
       }
-      removePropListener(prop)
+      removePropListener(property)
       if (isObject(value)) {
         value = getUntracked(value) || value
       }
@@ -211,12 +216,12 @@ export function state<T extends object>(initialObject: T = {} as T): T {
           .then((v) => {
             value.status = 'fulfilled'
             value.value = v
-            notifyUpdate(['resolve', [prop], v])
+            notifyUpdate(['resolve', [property], v])
           })
           .catch((e) => {
             value.status = 'rejected'
             value.reason = e
-            notifyUpdate(['reject', [prop], e])
+            notifyUpdate(['reject', [property], e])
           })
       } else {
         if (!proxyStateMap.has(value) && canProxy(value)) {
@@ -230,11 +235,11 @@ export function state<T extends object>(initialObject: T = {} as T): T {
         }
         const childProxyState = !refSet.has(nextValue) && proxyStateMap.get(nextValue)
         if (childProxyState) {
-          addPropListener(prop, childProxyState)
+          addPropListener(property, childProxyState)
         }
       }
-      Reflect.set(target, prop, nextValue, receiver)
-      notifyUpdate(['set', [prop], value, prevValue])
+      Reflect.set(target, property, nextValue, receiver)
+      notifyUpdate(['set', [property], value, prevValue])
       return true
     },
   }
@@ -256,30 +261,30 @@ export function state<T extends object>(initialObject: T = {} as T): T {
   return proxyObject
 }
 
-export function subscribe<T extends object>(
+export function observe<T extends object>(
   proxyObject: T,
-  callback: (ops: Op[]) => void,
+  callback: (operations: Operation[]) => void,
   notifyInSync?: boolean
-): () => void {
+) {
   const proxyState = proxyStateMap.get(proxyObject as object)
   if (process.env.NODE_ENV !== 'production' && !proxyState) {
     console.warn('Please use proxy object')
   }
   let promise: Promise<void> | undefined
-  const ops: Op[] = []
+  const operations: Operation[] = []
   const addListener = (proxyState as ProxyState)[3]
   let isListenerActive = false
-  const listener: Listener = (op) => {
-    ops.push(op)
+  const listener: Listener = (operation: Operation) => {
+    operations.push(operation)
     if (notifyInSync) {
-      callback(ops.splice(0))
+      callback(operations.splice(0))
       return
     }
     if (!promise) {
       promise = Promise.resolve().then(() => {
         promise = undefined
         if (isListenerActive) {
-          callback(ops.splice(0))
+          callback(operations.splice(0))
         }
       })
     }

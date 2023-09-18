@@ -5,12 +5,15 @@ export type AsRef = { $$valtioRef: true }
 export type ProxyObject = object
 
 export type Path = (string | symbol)[]
-export type Op =
+
+export type Operation =
   | [op: 'set', path: Path, value: unknown, prevValue: unknown]
   | [op: 'delete', path: Path, prevValue: unknown]
   | [op: 'resolve', path: Path, value: unknown]
   | [op: 'reject', path: Path, error: unknown]
-export type Listener = (op: Op, nextVersion: number) => void
+  | [op: 'get', path: Path, value: unknown]
+
+export type Listener = (operation: Operation, nextVersion: number) => void
 
 export type Primitive = string | number | boolean | null | undefined | symbol | bigint
 
