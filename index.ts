@@ -11,8 +11,8 @@ import {
   RemoveListener,
   Snapshot,
 } from './types'
-import { isObject } from './helper'
-import { proxyMap, proxySet } from './polyfill'
+import { isObject, log } from './helper'
+import { objectMap, objectSet } from './polyfill'
 
 // Shared State, Map with links to all states created.
 const proxyStateMap = new WeakMap<ProxyObject, ProxyState>()
@@ -98,15 +98,52 @@ const proxyCache = new WeakMap<object, ProxyObject>()
 
 const versionHolder = [1, 1] as [number, number]
 
+type ArrayElementType<E> = E extends (infer U)[] ? U : never
+type SetElementType<E> = E extends Set<infer U> ? U : never
+type MapElementType<E> = E extends Map<infer U, infer V> ? [U, V] : never
+
+type ArrayWithParent<T, P> = {
+  parent: P
+} & Array<T>
+
+type SetWithParent<T, P> = {
+  parent: P
+} & Set<T>
+
+type MapWithParent<T, S, P> = {
+  parent: P
+} & Map<T, S>
+
+type ChildState<E, P> = E extends object
+  ? {
+      parent: P
+    } & (E extends Array<any>
+      ? ArrayWithParent<ArrayElementType<E>, P>
+      : E extends Set<any>
+      ? SetWithParent<SetElementType<E>, P>
+      : E extends Map<any, any>
+      ? MapWithParent<MapElementType<E>[0], MapElementType<E>[1], P>
+      : {
+          [F in keyof E]: E[F] extends object ? ChildState<E[F], ChildState<E, P>> : E[F]
+        })
+  : E
+
+type RootState<T> = T extends Set<any>
+  ? Set<SetElementType<T>>
+  : {
+      [K in keyof T]: ChildState<T[K], T>
+    }
+
 // proxy function renamed to state (proxy as hidden implementation detail).
-export function state<T extends object>(initialObject: T = {} as T): T {
+export function state<T extends object>(initialObject: T = {} as T, parent?: object): RootState<T> {
   if (!isObject(initialObject)) {
     throw new Error('object required')
   }
-  const found = proxyCache.get(initialObject) as T | undefined
-  if (found) {
-    return found
+  if (Object.hasOwn(initialObject, 'parent')) {
+    log('"parent" property is reserved on state objects to reference the parent', 'warning')
   }
+  const found = proxyCache.get(initialObject) as RootState<T> | undefined
+  if (found) return found
   let version = versionHolder[0]
   const listeners = new Set<Listener>()
   const notifyUpdate = (operation: Operation, nextVersion = ++versionHolder[0]) => {
@@ -192,6 +229,7 @@ export function state<T extends object>(initialObject: T = {} as T): T {
       return deleted
     },
     get(target, property, receiver) {
+      if (property === 'parent') return parent // Parent access untracked.
       const value = Reflect.get(target, property, receiver)
       notifyUpdate(['get', [property], value])
       return value
@@ -225,12 +263,12 @@ export function state<T extends object>(initialObject: T = {} as T): T {
           })
       } else {
         if (!proxyStateMap.has(value) && canProxy(value)) {
-          nextValue = state(value)
+          nextValue = state(value, receiver)
         } else if (canPolyfill(value)) {
           if (value instanceof Map) {
-            nextValue = proxyMap(value)
+            nextValue = objectMap(value, parent)
           } else {
-            nextValue = proxySet(value)
+            nextValue = objectSet(value, parent)
           }
         }
         const childProxyState = !refSet.has(nextValue) && proxyStateMap.get(nextValue)

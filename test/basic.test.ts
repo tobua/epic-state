@@ -33,16 +33,16 @@ test('Multiple states can be created.', () => {
 
 test('Can observe state changes.', async () => {
   const subscribeMock = vi.fn()
-  const root = state<any>({ count: 1 })
+  const root = state<{ count?: number }>({ count: 1 })
 
   expect(subscribeMock).not.toHaveBeenCalled()
 
   observe(root, subscribeMock)
 
   // += will do a get and only then a set (both proxy traps invoked).
-  root.count += 1
+  ;(root.count as number) += 1
 
-  const readValue = root.count
+  const readValue = root.count ?? 0
   const double = readValue * 2
 
   expect(double).toBe(4)
@@ -190,7 +190,7 @@ test('Destructured objects are still tracked.', async () => {
 test('Arrays, Maps and Sets are also tracked.', async () => {
   const subscribeMock = vi.fn()
   const root = state({
-    array: [1, 2, 3],
+    list: [1, 2, 3],
     // TODO automatically transform Map and Set.
     map: new Map<string, string | { value: number } | boolean>([
       ['name', 'John'],
@@ -203,11 +203,11 @@ test('Arrays, Maps and Sets are also tracked.', async () => {
 
   observe(root, (values) => subscribeMock(values.filter((value) => value[0] !== 'get')))
 
-  root.array.push(4)
+  root.list.push(4)
   root.map.set('city', 'Los Angeles')
   root.set.add('fig')
 
-  const age = root.map.get('age') as { value: number }
+  const age = (root.map as any).get('age') as { value: number }
   // TODO change isn't tracked.
   age.value += 1
 
@@ -217,7 +217,7 @@ test('Arrays, Maps and Sets are also tracked.', async () => {
   expect(subscribeMock.mock.calls[0].length).toBe(1)
   // TODO map and set aren't tracked.
   expect(subscribeMock.mock.calls[0][0].length).toBe(1)
-  expect(subscribeMock.mock.calls[0][0][0]).toEqual(['set', ['array', '3'], 4, undefined])
+  expect(subscribeMock.mock.calls[0][0][0]).toEqual(['set', ['list', '3'], 4, undefined])
 })
 
 // TODO doesn't work yet.

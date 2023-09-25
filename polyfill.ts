@@ -2,70 +2,74 @@ import { state } from './index'
 
 type KeyValRecord<K, V> = [key: K, value: V]
 
-type InternalProxyMap<K, V> = Map<K, V> & {
+type InternalObjectMap<K, V> = Map<K, V> & {
   data: KeyValRecord<K, V>[]
   toJSON: object
 }
 
-export function proxyMap<K, V>(entries?: Iterable<readonly [K, V]> | null): Map<K, V> {
+export function objectMap<K, V>(
+  entries?: Iterable<readonly [K, V]> | null,
+  parent?: object
+): Map<K, V> {
   // Separate object referenced in methods, as type inference with this didn't work properly.
-  const proxy = {
+  const polyfill = {
     data: Array.from(entries || []) as KeyValRecord<K, V>[],
     has(key) {
-      return proxy.data.some((p) => p[0] === key)
+      return polyfill.data.some((p) => p[0] === key)
     },
     set(key, value) {
-      const record = proxy.data.find((p) => p[0] === key)
+      // TODO transform value to state polyfill.
+      const record = polyfill.data.find((p) => p[0] === key)
       if (record) {
         record[1] = value
       } else {
-        proxy.data.push([key, value])
+        polyfill.data.push([key, value])
       }
-      return this
+      return polyfill
     },
     get(key) {
-      return proxy.data.find((p) => p[0] === key)?.[1]
+      return polyfill.data.find((p) => p[0] === key)?.[1]
     },
     delete(key) {
-      const index = proxy.data.findIndex((p) => p[0] === key)
+      const index = polyfill.data.findIndex((p) => p[0] === key)
       if (index === -1) {
         return false
       }
-      proxy.data.splice(index, 1)
+      polyfill.data.splice(index, 1)
       return true
     },
     clear() {
-      proxy.data.splice(0)
+      polyfill.data.splice(0)
     },
     get size() {
-      return proxy.data.length
+      return polyfill.data.length
     },
     toJSON() {
-      return new Map(proxy.data)
+      return new Map(polyfill.data)
     },
-    forEach(cb) {
-      proxy.data.forEach((p) => {
-        cb(p[1], p[0], this)
+    forEach(callback) {
+      polyfill.data.forEach((p) => {
+        callback(p[1], p[0], polyfill)
       })
     },
     keys() {
-      return proxy.data.map((p) => p[0]).values()
+      return polyfill.data.map((p) => p[0]).values()
     },
     values() {
-      return proxy.data.map((p) => p[1]).values()
+      return polyfill.data.map((p) => p[1]).values()
     },
     entries() {
-      return new Map(proxy.data).entries()
+      return new Map(polyfill.data).entries()
     },
     get [Symbol.toStringTag]() {
       return 'Map'
     },
     [Symbol.iterator]() {
-      return proxy.entries()
+      return polyfill.entries()
     },
   }
 
-  const map: InternalProxyMap<K, V> = state(proxy)
+  const map: InternalObjectMap<K, V> = state(polyfill, parent) as unknown as InternalObjectMap<K, V>
 
   Object.defineProperties(map, {
     data: {
@@ -84,69 +88,74 @@ export function proxyMap<K, V>(entries?: Iterable<readonly [K, V]> | null): Map<
 }
 
 // properties that we don't want to expose to the end-user
-type InternalProxySet<T> = Set<T> & {
+type InternalObjectSet<T> = Set<T> & {
   data: T[]
   toJSON: object
 }
 
-export function proxySet<T>(initialValues?: Iterable<T> | null): Set<T> {
-  const proxy = {
+export function objectSet<T>(initialValues?: Iterable<T> | null, parent?: object): Set<T> {
+  const polyfill = {
     data: Array.from(new Set(initialValues)),
     has(value) {
-      return proxy.data.indexOf(value) !== -1
+      return polyfill.data.indexOf(value) !== -1
     },
-    add(value) {
+    add(value: T) {
       let hasProxy = false
       if (typeof value === 'object' && value !== null) {
-        hasProxy = proxy.data.indexOf(state(value as T & object)) !== -1
+        // TODO why is it calling state to check if it has a proxy?
+        hasProxy = polyfill.data.indexOf(state(value, polyfill) as T) !== -1
       }
-      if (proxy.data.indexOf(value) === -1 && !hasProxy) {
-        proxy.data.push(value)
+      if (polyfill.data.indexOf(value) === -1 && !hasProxy) {
+        polyfill.data.push(value)
       }
-      return this
+      return polyfill
     },
     delete(value) {
-      const index = proxy.data.indexOf(value)
+      const index = polyfill.data.indexOf(value)
       if (index === -1) {
         return false
       }
-      proxy.data.splice(index, 1)
+      polyfill.data.splice(index, 1)
       return true
     },
     clear() {
-      proxy.data.splice(0)
+      polyfill.data.splice(0)
     },
     get size() {
-      return proxy.data.length
+      return polyfill.data.length
     },
     forEach(cb) {
-      proxy.data.forEach((value) => {
-        cb(value, value, this)
+      polyfill.data.forEach((value) => {
+        cb(value, value, polyfill)
       })
     },
     get [Symbol.toStringTag]() {
       return 'Set'
     },
     toJSON() {
-      return new Set(proxy.data)
+      // TODO is a regular Set valid JSON?
+      return new Set(polyfill.data)
     },
     [Symbol.iterator]() {
-      return proxy.data[Symbol.iterator]()
+      return polyfill.data[Symbol.iterator]()
     },
     values() {
-      return proxy.data.values()
+      return polyfill.data.values()
     },
     keys() {
       // for Set.keys is an alias for Set.values()
-      return proxy.data.values()
+      return polyfill.data.values()
     },
     entries() {
       // array.entries returns [index, value] while Set [value, value]
-      return new Set(proxy.data).entries()
+      return new Set(polyfill.data).entries()
     },
   }
 
-  const set: InternalProxySet<T> = state(proxy)
+  const set: InternalObjectSet<T> = state(polyfill, parent) as Set<T> & {
+    data: T[]
+    toJSON: () => string
+  }
 
   Object.defineProperties(set, {
     data: {
