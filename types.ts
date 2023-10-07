@@ -48,7 +48,7 @@ export type HandlePromise = <P extends Promise<any>>(promise: P) => Awaited<P>
 export type CreateSnapshot = <T extends object>(
   target: T,
   version: number,
-  handlePromise?: HandlePromise
+  handlePromise?: HandlePromise,
 ) => T
 
 export type RemoveListener = () => void

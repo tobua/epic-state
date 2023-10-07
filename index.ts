@@ -41,7 +41,7 @@ const defaultHandlePromise = <P extends Promise<any>>(
     status?: 'pending' | 'fulfilled' | 'rejected'
     value?: Awaited<P>
     reason?: unknown
-  }
+  },
 ) => {
   switch (promise.status) {
     case 'fulfilled':
@@ -58,7 +58,7 @@ const snapCache = new WeakMap<object, [version: number, snap: unknown]>()
 const createSnapshot: CreateSnapshot = <T extends object>(
   target: T,
   version: number,
-  handlePromise: HandlePromise = defaultHandlePromise
+  handlePromise: HandlePromise = defaultHandlePromise,
 ): T => {
   const cache = snapCache.get(target)
   if (cache?.[0] === version) {
@@ -102,47 +102,58 @@ type ArrayElementType<E> = E extends (infer U)[] ? U : never
 type SetElementType<E> = E extends Set<infer U> ? U : never
 type MapElementType<E> = E extends Map<infer U, infer V> ? [U, V] : never
 
-type ArrayWithParent<T, P> = {
+type ArrayWithParent<T, P, R> = {
   parent: P
+  root: R
 } & Array<T>
 
-type SetWithParent<T, P> = {
+type SetWithParent<T, P, R> = {
   parent: P
+  root: R
 } & Set<T>
 
-type MapWithParent<T, S, P> = {
+type MapWithParent<T, S, P, R> = {
   parent: P
+  root: R
 } & Map<T, S>
 
-type ChildState<E, P> = E extends object
+type ChildState<E, P, R> = E extends object
   ? {
       parent: P
+      root: R
     } & (E extends Array<any>
-      ? ArrayWithParent<ArrayElementType<E>, P>
+      ? ArrayWithParent<ArrayElementType<E>, P, R>
       : E extends Set<any>
-      ? SetWithParent<SetElementType<E>, P>
+      ? SetWithParent<SetElementType<E>, P, R>
       : E extends Map<any, any>
-      ? MapWithParent<MapElementType<E>[0], MapElementType<E>[1], P>
+      ? MapWithParent<MapElementType<E>[0], MapElementType<E>[1], P, R>
       : {
-          [F in keyof E]: E[F] extends object ? ChildState<E[F], ChildState<E, P>> : E[F]
+          [F in keyof E]: E[F] extends object ? ChildState<E[F], ChildState<E, P, R>, R> : E[F]
         })
   : E
 
-type RootState<T> = T extends Set<any>
+type RootState<T, R> = T extends Set<any>
   ? Set<SetElementType<T>>
   : {
-      [K in keyof T]: ChildState<T[K], T>
+      [K in keyof T]: ChildState<T[K], T, R extends unknown ? T : R>
     }
 
 // proxy function renamed to state (proxy as hidden implementation detail).
-export function state<T extends object>(initialObject: T = {} as T, parent?: object): RootState<T> {
+export function state<T extends object, R>(
+  initialObject: T = {} as T,
+  parent?: object,
+  root?: R,
+): RootState<T, R> {
   if (!isObject(initialObject)) {
-    throw new Error('object required')
+    log('Only objects can be made observable with state()', 'error')
   }
-  if (Object.hasOwn(initialObject, 'parent')) {
+  if (!parent && Object.hasOwn(initialObject, 'parent')) {
     log('"parent" property is reserved on state objects to reference the parent', 'warning')
   }
-  const found = proxyCache.get(initialObject) as RootState<T> | undefined
+  if (!root && Object.hasOwn(initialObject, 'root')) {
+    log('"root" property is reserved on state objects to reference the root', 'warning')
+  }
+  const found = proxyCache.get(initialObject) as RootState<T, R> | undefined
   if (found) return found
   let version = versionHolder[0]
   const listeners = new Set<Listener>()
@@ -230,11 +241,16 @@ export function state<T extends object>(initialObject: T = {} as T, parent?: obj
     },
     get(target, property, receiver) {
       if (property === 'parent') return parent // Parent access untracked.
+      if (property === 'root') return root // Root access untracked.
       const value = Reflect.get(target, property, receiver)
       notifyUpdate(['get', [property], value])
       return value
     },
     set(target, property, value, receiver: object) {
+      if (property === 'parent' || property === 'root') {
+        log(`"${property}" is reserved an cannot be changed`, 'warning')
+        return false
+      }
       const hasPrevValue = Reflect.has(target, property)
       const prevValue = Reflect.get(target, property, receiver) // Reflect skips other traps.
       if (
@@ -263,12 +279,13 @@ export function state<T extends object>(initialObject: T = {} as T, parent?: obj
           })
       } else {
         if (!proxyStateMap.has(value) && canProxy(value)) {
-          nextValue = state(value, receiver)
+          nextValue = state(value, receiver, root ?? receiver)
         } else if (canPolyfill(value)) {
+          // TODO Necessary that Map or Set cannot be root?
           if (value instanceof Map) {
-            nextValue = objectMap(value, parent)
+            nextValue = objectMap(value, parent, root ?? receiver)
           } else {
-            nextValue = objectSet(value, parent)
+            nextValue = objectSet(value, parent, root ?? receiver)
           }
         }
         const childProxyState = !refSet.has(nextValue) && proxyStateMap.get(nextValue)
@@ -294,6 +311,7 @@ export function state<T extends object>(initialObject: T = {} as T, parent?: obj
       delete desc.value
       delete desc.writable
     }
+    // This will recursively call the setter trap for any nested properties on the initialObject.
     Object.defineProperty(baseObject, key, desc)
   })
   return proxyObject
@@ -302,7 +320,7 @@ export function state<T extends object>(initialObject: T = {} as T, parent?: obj
 export function observe<T extends object>(
   proxyObject: T,
   callback: (operations: Operation[]) => void,
-  notifyInSync?: boolean
+  notifyInSync?: boolean,
 ) {
   const proxyState = proxyStateMap.get(proxyObject as object)
   if (process.env.NODE_ENV !== 'production' && !proxyState) {
@@ -337,7 +355,7 @@ export function observe<T extends object>(
 
 export function snapshot<T extends object>(
   proxyObject: T,
-  handlePromise?: HandlePromise
+  handlePromise?: HandlePromise,
 ): Snapshot<T> {
   const proxyState = proxyStateMap.get(proxyObject as object)
   if (process.env.NODE_ENV !== 'production' && !proxyState) {

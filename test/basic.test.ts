@@ -70,7 +70,7 @@ test('Can unsubscribe from an observation.', async () => {
   expect(subscribeMock).not.toHaveBeenCalled()
 
   const unsubscribe = observe(root, (values) =>
-    subscribeMock(values.filter((value) => value[0] !== 'get'))
+    subscribeMock(values.filter((value) => value[0] !== 'get')),
   )
 
   root.count += 1
@@ -86,6 +86,26 @@ test('Can unsubscribe from an observation.', async () => {
   await process()
 
   expect(subscribeMock.mock.calls.length).toBe(1)
+})
+
+test('Observe will only observe changes to the passed state.', async () => {
+  const subscribeMock = vi.fn()
+  const firstRoot = state({ nested: { count: 1 } })
+  const secondRoot = state({ nested: { count: 2 } })
+
+  observe(secondRoot, subscribeMock)
+
+  firstRoot.nested.count += 1
+  secondRoot.nested.count += 1
+
+  await process()
+
+  expect(subscribeMock).toHaveBeenCalled()
+  expect(subscribeMock.mock.calls.length).toBe(1)
+  expect(subscribeMock.mock.calls[0][0].length).toBe(3)
+  expect(subscribeMock.mock.calls[0][0][0][0]).toEqual('get')
+  expect(subscribeMock.mock.calls[0][0][1][0]).toEqual('get')
+  expect(subscribeMock.mock.calls[0][0][2][0]).toEqual('set') // Only one set for secondRoot.
 })
 
 test('Changes to a snapshot remain untracked.', async () => {
@@ -224,7 +244,7 @@ test('Arrays, Maps and Sets are also tracked.', async () => {
 test.skip('Map/Set polyfill works at the top-level.', async () => {
   const subscribeMock = vi.fn()
   const root = state(
-    new Set([{ name: 'apple' }, { name: 'banana' }, { name: 'cherry' }, { name: 'apple' }])
+    new Set([{ name: 'apple' }, { name: 'banana' }, { name: 'cherry' }, { name: 'apple' }]),
   )
 
   observe(root, (values) => subscribeMock(values.filter((value) => value[0] !== 'get')))
@@ -241,7 +261,7 @@ test('Works with classes.', async () => {
   const root = state(
     new (class State {
       hello = 'world'
-    })()
+    })(),
   )
 
   observe(root, (values) => subscribeMock(values.filter((value) => value[0] !== 'get')))

@@ -7,9 +7,10 @@ type InternalObjectMap<K, V> = Map<K, V> & {
   toJSON: object
 }
 
-export function objectMap<K, V>(
+export function objectMap<K, V, R>(
   entries?: Iterable<readonly [K, V]> | null,
-  parent?: object
+  parent?: object,
+  root?: R,
 ): Map<K, V> {
   // Separate object referenced in methods, as type inference with this didn't work properly.
   const polyfill = {
@@ -69,7 +70,11 @@ export function objectMap<K, V>(
     },
   }
 
-  const map: InternalObjectMap<K, V> = state(polyfill, parent) as unknown as InternalObjectMap<K, V>
+  const map: InternalObjectMap<K, V> = state(
+    polyfill,
+    parent,
+    root,
+  ) as unknown as InternalObjectMap<K, V>
 
   Object.defineProperties(map, {
     data: {
@@ -82,6 +87,7 @@ export function objectMap<K, V>(
       enumerable: false,
     },
   })
+
   Object.seal(map)
 
   return map as Map<K, V>
@@ -93,7 +99,11 @@ type InternalObjectSet<T> = Set<T> & {
   toJSON: object
 }
 
-export function objectSet<T>(initialValues?: Iterable<T> | null, parent?: object): Set<T> {
+export function objectSet<T, R>(
+  initialValues?: Iterable<T> | null,
+  parent?: object,
+  root?: R,
+): Set<T> {
   const polyfill = {
     data: Array.from(new Set(initialValues)),
     has(value) {
@@ -152,7 +162,7 @@ export function objectSet<T>(initialValues?: Iterable<T> | null, parent?: object
     },
   }
 
-  const set: InternalObjectSet<T> = state(polyfill, parent) as Set<T> & {
+  const set: InternalObjectSet<T> = state(polyfill, parent, root) as Set<T> & {
     data: T[]
     toJSON: () => string
   }
