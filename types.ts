@@ -2,7 +2,7 @@ export type AnyFunction = (...args: any[]) => any
 
 export type AsRef = { $$valtioRef: true }
 
-export type ProxyObject = object
+export type ProxyObject = object & { root?: ProxyObject; parent?: ProxyObject }
 
 export type Path = (string | symbol)[]
 
@@ -36,12 +36,6 @@ export type Snapshot<T> = T extends SnapshotIgnore
   : T extends object
   ? { readonly [K in keyof T]: Snapshot<T[K]> }
   : T
-
-/**
- * This is not a public API.
- * It can be changed without any notice.
- */
-export type INTERNAL_Snapshot<T> = Snapshot<T>
 
 export type HandlePromise = <P extends Promise<any>>(promise: P) => Awaited<P>
 

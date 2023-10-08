@@ -69,7 +69,10 @@
   ],
   "prettier": "padua/configuration/.prettierrc.json",
   "eslintConfig": {
-    "extends": "./node_modules/padua/configuration/eslint.cjs"
+    "extends": "./node_modules/padua/configuration/eslint.cjs",
+    "rules": {
+      "no-plusplus": 0
+    }
   },
   "publishConfig": {
     "provenance": true

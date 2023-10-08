@@ -1,4 +1,4 @@
-import { state } from './index'
+import type { state as State } from './index'
 
 type KeyValRecord<K, V> = [key: K, value: V]
 
@@ -8,6 +8,7 @@ type InternalObjectMap<K, V> = Map<K, V> & {
 }
 
 export function objectMap<K, V, R>(
+  state: typeof State,
   entries?: Iterable<readonly [K, V]> | null,
   parent?: object,
   root?: R,
@@ -100,6 +101,7 @@ type InternalObjectSet<T> = Set<T> & {
 }
 
 export function objectSet<T, R>(
+  state: typeof State,
   initialValues?: Iterable<T> | null,
   parent?: object,
   root?: R,

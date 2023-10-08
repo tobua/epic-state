@@ -37,7 +37,7 @@ test('Can observe state changes.', async () => {
 
   expect(subscribeMock).not.toHaveBeenCalled()
 
-  observe(root, subscribeMock)
+  observe(subscribeMock, root)
 
   // += will do a get and only then a set (both proxy traps invoked).
   ;(root.count as number) += 1
@@ -69,8 +69,9 @@ test('Can unsubscribe from an observation.', async () => {
 
   expect(subscribeMock).not.toHaveBeenCalled()
 
-  const unsubscribe = observe(root, (values) =>
-    subscribeMock(values.filter((value) => value[0] !== 'get')),
+  const unsubscribe = observe(
+    (values) => subscribeMock(values.filter((value) => value[0] !== 'get')),
+    root,
   )
 
   root.count += 1
@@ -93,7 +94,7 @@ test('Observe will only observe changes to the passed state.', async () => {
   const firstRoot = state({ nested: { count: 1 } })
   const secondRoot = state({ nested: { count: 2 } })
 
-  observe(secondRoot, subscribeMock)
+  observe(subscribeMock, secondRoot)
 
   firstRoot.nested.count += 1
   secondRoot.nested.count += 1
@@ -112,7 +113,7 @@ test('Changes to a snapshot remain untracked.', async () => {
   const subscribeMock = vi.fn()
   const root = state({ count: 1 })
 
-  observe(root, subscribeMock)
+  observe(subscribeMock, root)
 
   const untrackedRoot = snapshot(root)
 
@@ -149,7 +150,7 @@ test('Can subscribe to nested state changes.', async () => {
 
   expect(subscribeMock).not.toHaveBeenCalled()
 
-  observe(root, (values) => subscribeMock(values.filter((value) => value[0] !== 'get')))
+  observe((values) => subscribeMock(values.filter((value) => value[0] !== 'get')), root)
 
   root.count.nested += 1
 
@@ -166,7 +167,7 @@ test('Can subscribe to deeply nested state changes.', async () => {
 
   expect(subscribeMock).not.toHaveBeenCalled()
 
-  observe(root, (values) => subscribeMock(values.filter((value) => value[0] !== 'get')))
+  observe((values) => subscribeMock(values.filter((value) => value[0] !== 'get')), root)
 
   root.values[0].nested.value += 1
 
@@ -187,7 +188,7 @@ test('Destructured objects are still tracked.', async () => {
 
   expect(subscribeMock).not.toHaveBeenCalled()
 
-  observe(root, (values) => subscribeMock(values.filter((value) => value[0] !== 'get')))
+  observe((values) => subscribeMock(values.filter((value) => value[0] !== 'get')), root)
 
   let { hello } = root
   const { nested } = root
@@ -221,7 +222,7 @@ test('Arrays, Maps and Sets are also tracked.', async () => {
     set: new Set(['apple', 'banana', 'cherry', 'apple']),
   })
 
-  observe(root, (values) => subscribeMock(values.filter((value) => value[0] !== 'get')))
+  observe((values) => subscribeMock(values.filter((value) => value[0] !== 'get')), root)
 
   root.list.push(4)
   root.map.set('city', 'Los Angeles')
@@ -247,7 +248,7 @@ test.skip('Map/Set polyfill works at the top-level.', async () => {
     new Set([{ name: 'apple' }, { name: 'banana' }, { name: 'cherry' }, { name: 'apple' }]),
   )
 
-  observe(root, (values) => subscribeMock(values.filter((value) => value[0] !== 'get')))
+  observe((values) => subscribeMock(values.filter((value) => value[0] !== 'get')), root)
 
   root.add({ name: 'fig' })
 
@@ -264,7 +265,7 @@ test('Works with classes.', async () => {
     })(),
   )
 
-  observe(root, (values) => subscribeMock(values.filter((value) => value[0] !== 'get')))
+  observe((values) => subscribeMock(values.filter((value) => value[0] !== 'get')), root)
 
   root.hello = 'changed'
 
@@ -280,7 +281,7 @@ test('Added objects will also be observed.', async () => {
 
   expect(subscribeMock).not.toHaveBeenCalled()
 
-  observe(root, subscribeMock)
+  observe(subscribeMock, root)
 
   root.nested = {
     value: 1,

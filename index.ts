@@ -15,7 +15,7 @@ import { isObject, log } from './helper'
 import { objectMap, objectSet } from './polyfill'
 
 // Shared State, Map with links to all states created.
-const proxyStateMap = new WeakMap<ProxyObject, ProxyState>()
+const proxyStateMap = new Map<ProxyObject, ProxyState>()
 const refSet = new WeakSet()
 
 const objectIs = Object.is
@@ -49,6 +49,7 @@ const defaultHandlePromise = <P extends Promise<any>>(
     case 'rejected':
       throw promise.reason
     default:
+      // eslint-disable-next-line @typescript-eslint/no-throw-literal
       throw promise
   }
 }
@@ -86,8 +87,8 @@ const createSnapshot: CreateSnapshot = <T extends object>(
       delete desc.value
       desc.get = () => handlePromise(value)
     } else if (proxyStateMap.has(value as object)) {
-      const [target, ensureVersion] = proxyStateMap.get(value as object) as ProxyState
-      desc.value = createSnapshot(target, ensureVersion(), handlePromise) as Snapshot<T>
+      const [proxyTarget, ensureVersion] = proxyStateMap.get(value as object) as ProxyState
+      desc.value = createSnapshot(proxyTarget, ensureVersion(), handlePromise) as Snapshot<T>
     }
     Object.defineProperty(snap, key, desc)
   })
@@ -139,7 +140,7 @@ type RootState<T, R> = T extends Set<any>
     }
 
 // proxy function renamed to state (proxy as hidden implementation detail).
-export function state<T extends object, R>(
+export function state<T extends object, R = undefined>(
   initialObject: T = {} as T,
   parent?: object,
   root?: R,
@@ -164,6 +165,15 @@ export function state<T extends object, R>(
     }
   }
   let checkVersion = versionHolder[1]
+
+  const createPropListener =
+    (prop: string | symbol): Listener =>
+    (operation, nextVersion) => {
+      const newOperation: Operation = [...operation]
+      newOperation[1] = [prop, ...(newOperation[1] as Path)]
+      notifyUpdate(newOperation, nextVersion)
+    }
+  const propProxyStates = new Map<string | symbol, readonly [ProxyState, RemoveListener?]>()
   const ensureVersion = (nextCheckVersion = ++versionHolder[1]) => {
     if (checkVersion !== nextCheckVersion && !listeners.size) {
       checkVersion = nextCheckVersion
@@ -176,21 +186,13 @@ export function state<T extends object, R>(
     }
     return version
   }
-  const createPropListener =
-    (prop: string | symbol): Listener =>
-    (operation, nextVersion) => {
-      const newOperation: Operation = [...operation]
-      newOperation[1] = [prop, ...(newOperation[1] as Path)]
-      notifyUpdate(newOperation, nextVersion)
-    }
-  const propProxyStates = new Map<string | symbol, readonly [ProxyState, RemoveListener?]>()
   const addPropListener = (prop: string | symbol, propProxyState: ProxyState) => {
     if (process.env.NODE_ENV !== 'production' && propProxyStates.has(prop)) {
       throw new Error('prop listener already exists')
     }
     if (listeners.size) {
-      const remove = propProxyState[3](createPropListener(prop))
-      propProxyStates.set(prop, [propProxyState, remove])
+      const removePropListener = propProxyState[3](createPropListener(prop))
+      propProxyStates.set(prop, [propProxyState, removePropListener])
     } else {
       propProxyStates.set(prop, [propProxyState])
     }
@@ -209,16 +211,16 @@ export function state<T extends object, R>(
         if (process.env.NODE_ENV !== 'production' && prevRemove) {
           throw new Error('remove already exists')
         }
-        const remove = propProxyState[3](createPropListener(prop))
-        propProxyStates.set(prop, [propProxyState, remove])
+        const removeProxyListener = propProxyState[3](createPropListener(prop))
+        propProxyStates.set(prop, [propProxyState, removeProxyListener])
       })
     }
     const removeListener = () => {
       listeners.delete(listener)
       if (listeners.size === 0) {
-        propProxyStates.forEach(([propProxyState, remove], prop) => {
-          if (remove) {
-            remove()
+        propProxyStates.forEach(([propProxyState, removeProxyListener], prop) => {
+          if (removeProxyListener) {
+            removeProxyListener()
             propProxyStates.set(prop, [propProxyState])
           }
         })
@@ -262,6 +264,7 @@ export function state<T extends object, R>(
       }
       removePropListener(property)
       if (isObject(value)) {
+        // eslint-disable-next-line no-param-reassign
         value = getUntracked(value) || value
       }
       let nextValue = value
@@ -283,9 +286,9 @@ export function state<T extends object, R>(
         } else if (canPolyfill(value)) {
           // TODO Necessary that Map or Set cannot be root?
           if (value instanceof Map) {
-            nextValue = objectMap(value, parent, root ?? receiver)
+            nextValue = objectMap(state, value, parent, root ?? receiver)
           } else {
-            nextValue = objectSet(value, parent, root ?? receiver)
+            nextValue = objectSet(state, value, parent, root ?? receiver)
           }
         }
         const childProxyState = !refSet.has(nextValue) && proxyStateMap.get(nextValue)
@@ -318,13 +321,26 @@ export function state<T extends object, R>(
 }
 
 export function observe<T extends object>(
-  proxyObject: T,
   callback: (operations: Operation[]) => void,
+  proxyObject?: T,
   notifyInSync?: boolean,
 ) {
   const proxyState = proxyStateMap.get(proxyObject as object)
-  if (process.env.NODE_ENV !== 'production' && !proxyState) {
-    console.warn('Please use proxy object')
+  if (process.env.NODE_ENV !== 'production' && proxyObject && !proxyState) {
+    log('proxyObject passed to observe() not registered', 'warning')
+    return () => false
+  }
+  // Observe all registered states recursively.
+  if (!proxyObject) {
+    const removeListeners = []
+    Array.from(proxyStateMap.keys()).forEach((currentProxyObject) => {
+      if (currentProxyObject.root) return
+      const removeListener = observe(callback, currentProxyObject, notifyInSync)
+      removeListeners.push(removeListener)
+    })
+    return () => {
+      removeListeners.forEach((listener) => listener())
+    }
   }
   let promise: Promise<void> | undefined
   const operations: Operation[] = []
@@ -361,8 +377,8 @@ export function snapshot<T extends object>(
   if (process.env.NODE_ENV !== 'production' && !proxyState) {
     console.warn('Please use proxy object')
   }
-  const [target, ensureVersion, createSnapshot] = proxyState as ProxyState
-  return createSnapshot(target, ensureVersion(), handlePromise) as Snapshot<T>
+  const [target, ensureVersion, proxyCreateSnapshot] = proxyState as ProxyState
+  return proxyCreateSnapshot(target, ensureVersion(), handlePromise) as Snapshot<T>
 }
 
 export function getVersion(proxyObject: unknown): number | undefined {

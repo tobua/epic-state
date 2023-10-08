@@ -15,7 +15,7 @@ test('Can navigate through state tree using the parent property.', async () => {
     list: [1, 2],
   })
 
-  observe(root, subscribeMock)
+  observe(subscribeMock, root)
 
   expect(root.id).toBe(1)
   // @ts-expect-error
