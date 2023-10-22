@@ -54,3 +54,52 @@ export type ProxyState = readonly [
   createSnapshot: CreateSnapshot,
   addListener: AddListener,
 ]
+
+type ArrayElementType<E> = E extends (infer U)[] ? U : never
+type SetElementType<E> = E extends Set<infer U> ? U : never
+type MapElementType<E> = E extends Map<infer U, infer V> ? [U, V] : never
+
+type ArrayWithParent<T, P, R> = {
+  parent: P
+  root: R
+} & Array<T>
+
+type SetWithParent<T, P, R> = {
+  parent: P
+  root: R
+} & Set<T>
+
+type MapWithParent<T, S, P, R> = {
+  parent: P
+  root: R
+} & Map<T, S>
+
+type ChildState<E, P, R> = E extends object
+  ? {
+      parent: P
+      root: R
+    } & (E extends Array<any>
+      ? ArrayWithParent<ArrayElementType<E>, P, R>
+      : E extends Set<any>
+      ? SetWithParent<SetElementType<E>, P, R>
+      : E extends Map<any, any>
+      ? MapWithParent<MapElementType<E>[0], MapElementType<E>[1], P, R>
+      : {
+          [F in keyof Omit<E, 'plugin'>]: E[F] extends object
+            ? ChildState<E[F], ChildState<E, P, R>, R>
+            : E[F]
+        })
+  : E
+
+export type RootState<T, R> = T extends Set<any>
+  ? Set<SetElementType<T>>
+  : {
+      [K in keyof Omit<T, 'plugin'>]: ChildState<T[K], T, R extends unknown ? T : R>
+    }
+
+export type PluginTraps = {
+  get?: (property: string) => void
+  set?: (property: string) => void
+}
+
+export type Plugin<T extends any[]> = (...configuration: T) => Plugin<['initialize']> | PluginTraps

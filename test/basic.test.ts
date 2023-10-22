@@ -252,9 +252,9 @@ test.skip('Map/Set polyfill works at the top-level.', async () => {
 
   root.add({ name: 'fig' })
 
-  const element = root.values().next()
+  // const element = root.values().next()
 
-  await process()
+  // await process()
 })
 
 test('Works with classes.', async () => {

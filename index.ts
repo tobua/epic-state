@@ -9,10 +9,13 @@ import {
   ProxyObject,
   ProxyState,
   RemoveListener,
+  RootState,
   Snapshot,
 } from './types'
 import { isObject, log } from './helper'
 import { objectMap, objectSet } from './polyfill'
+
+export type { Plugin } from './types'
 
 // Shared State, Map with links to all states created.
 const proxyStateMap = new Map<ProxyObject, ProxyState>()
@@ -99,52 +102,13 @@ const proxyCache = new WeakMap<object, ProxyObject>()
 
 const versionHolder = [1, 1] as [number, number]
 
-type ArrayElementType<E> = E extends (infer U)[] ? U : never
-type SetElementType<E> = E extends Set<infer U> ? U : never
-type MapElementType<E> = E extends Map<infer U, infer V> ? [U, V] : never
-
-type ArrayWithParent<T, P, R> = {
-  parent: P
-  root: R
-} & Array<T>
-
-type SetWithParent<T, P, R> = {
-  parent: P
-  root: R
-} & Set<T>
-
-type MapWithParent<T, S, P, R> = {
-  parent: P
-  root: R
-} & Map<T, S>
-
-type ChildState<E, P, R> = E extends object
-  ? {
-      parent: P
-      root: R
-    } & (E extends Array<any>
-      ? ArrayWithParent<ArrayElementType<E>, P, R>
-      : E extends Set<any>
-      ? SetWithParent<SetElementType<E>, P, R>
-      : E extends Map<any, any>
-      ? MapWithParent<MapElementType<E>[0], MapElementType<E>[1], P, R>
-      : {
-          [F in keyof E]: E[F] extends object ? ChildState<E[F], ChildState<E, P, R>, R> : E[F]
-        })
-  : E
-
-type RootState<T, R> = T extends Set<any>
-  ? Set<SetElementType<T>>
-  : {
-      [K in keyof T]: ChildState<T[K], T, R extends unknown ? T : R>
-    }
-
 // proxy function renamed to state (proxy as hidden implementation detail).
 export function state<T extends object, R = undefined>(
   initialObject: T = {} as T,
   parent?: object,
   root?: R,
 ): RootState<T, R> {
+  let initialization = true
   if (!isObject(initialObject)) {
     log('Only objects can be made observable with state()', 'error')
   }
@@ -244,12 +208,17 @@ export function state<T extends object, R = undefined>(
     get(target, property, receiver) {
       if (property === 'parent') return parent // Parent access untracked.
       if (property === 'root') return root // Root access untracked.
+      if (property === 'plugin') return undefined // Plugin cannot be accessed or tracked.
       const value = Reflect.get(target, property, receiver)
       notifyUpdate(['get', [property], value])
       return value
     },
     set(target, property, value, receiver: object) {
-      if (property === 'parent' || property === 'root') {
+      if (
+        property === 'parent' ||
+        property === 'root' ||
+        (!initialization && property === 'plugin')
+      ) {
         log(`"${property}" is reserved an cannot be changed`, 'warning')
         return false
       }
@@ -317,6 +286,7 @@ export function state<T extends object, R = undefined>(
     // This will recursively call the setter trap for any nested properties on the initialObject.
     Object.defineProperty(baseObject, key, desc)
   })
+  initialization = false
   return proxyObject
 }
 
