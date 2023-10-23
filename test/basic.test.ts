@@ -135,6 +135,12 @@ test('Each proxy has a version.', () => {
 
   expect(typeof version).toBe('number')
   expect(typeof anotherVersion).toBe('number')
+  expect(version === anotherVersion).toBe(true)
+
+  root.count = 3
+
+  version = getVersion(root)
+
   expect(version !== anotherVersion).toBe(true)
 
   remove(root)

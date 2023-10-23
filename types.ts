@@ -99,7 +99,8 @@ export type RootState<T, R> = T extends Set<any>
 
 export type PluginTraps = {
   get?: (property: string) => void
-  set?: (property: string) => void
+  set?: (property: string, value: any, previousValue: any) => void
+  delete?: (property: string) => void
 }
 
 export type Plugin<T extends any[]> = (...configuration: T) => Plugin<['initialize']> | PluginTraps

@@ -6,6 +6,7 @@ import {
   Listener,
   Operation,
   Path,
+  PluginTraps,
   ProxyObject,
   ProxyState,
   RemoveListener,
@@ -118,6 +119,16 @@ export function state<T extends object, R = undefined>(
   if (!root && Object.hasOwn(initialObject, 'root')) {
     log('"root" property is reserved on state objects to reference the root', 'warning')
   }
+  // TODO separate method.
+  if (Object.hasOwn(initialObject, 'plugin')) {
+    // @ts-ignore
+    if (!Array.isArray(initialObject.plugin)) {
+      // @ts-ignore
+      initialObject.plugin = [initialObject.plugin]
+    }
+    // @ts-ignore
+    initialObject.plugin = initialObject.plugin.map((plugin) => plugin('initialize'))
+  }
   const found = proxyCache.get(initialObject) as RootState<T, R> | undefined
   if (found) return found
   let version = versionHolder[0]
@@ -126,6 +137,19 @@ export function state<T extends object, R = undefined>(
     if (version !== nextVersion) {
       version = nextVersion
       listeners.forEach((listener) => listener(operation, nextVersion))
+    }
+  }
+  const callPlugins = (
+    type: keyof PluginTraps,
+    target: object & { plugin?: PluginTraps[] },
+    ...values: any[]
+  ) => {
+    if (target.plugin) {
+      target.plugin.forEach((plugin) => {
+        if (plugin[type]) {
+          plugin[type].call(this, ...values)
+        }
+      })
     }
   }
   let checkVersion = versionHolder[1]
@@ -202,6 +226,7 @@ export function state<T extends object, R = undefined>(
       const deleted = Reflect.deleteProperty(target, property)
       if (deleted) {
         notifyUpdate(['delete', [property], prevValue])
+        callPlugins('delete', target, property)
       }
       return deleted
     },
@@ -210,7 +235,10 @@ export function state<T extends object, R = undefined>(
       if (property === 'root') return root // Root access untracked.
       if (property === 'plugin') return undefined // Plugin cannot be accessed or tracked.
       const value = Reflect.get(target, property, receiver)
-      notifyUpdate(['get', [property], value])
+      if (!initialization) {
+        notifyUpdate(['get', [property], value])
+        callPlugins('get', target, property)
+      }
       return value
     },
     set(target, property, value, receiver: object) {
@@ -266,7 +294,10 @@ export function state<T extends object, R = undefined>(
         }
       }
       Reflect.set(target, property, nextValue, receiver)
-      notifyUpdate(['set', [property], value, prevValue])
+      if (!initialization) {
+        notifyUpdate(['set', [property], value, prevValue])
+        callPlugins('set', target, property, value, prevValue)
+      }
       return true
     },
   }
