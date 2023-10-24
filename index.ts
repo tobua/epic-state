@@ -6,7 +6,6 @@ import {
   Listener,
   Operation,
   Path,
-  PluginTraps,
   ProxyObject,
   ProxyState,
   RemoveListener,
@@ -15,6 +14,7 @@ import {
 } from './types'
 import { isObject, log } from './helper'
 import { objectMap, objectSet } from './polyfill'
+import { initializePlugins, callPlugins } from './plugin'
 
 export type { Plugin } from './types'
 
@@ -119,16 +119,8 @@ export function state<T extends object, R = undefined>(
   if (!root && Object.hasOwn(initialObject, 'root')) {
     log('"root" property is reserved on state objects to reference the root', 'warning')
   }
-  // TODO separate method.
-  if (Object.hasOwn(initialObject, 'plugin')) {
-    // @ts-ignore
-    if (!Array.isArray(initialObject.plugin)) {
-      // @ts-ignore
-      initialObject.plugin = [initialObject.plugin]
-    }
-    // @ts-ignore
-    initialObject.plugin = initialObject.plugin.map((plugin) => plugin('initialize'))
-  }
+
+  initializePlugins(initialObject)
   const found = proxyCache.get(initialObject) as RootState<T, R> | undefined
   if (found) return found
   let version = versionHolder[0]
@@ -139,19 +131,7 @@ export function state<T extends object, R = undefined>(
       listeners.forEach((listener) => listener(operation, nextVersion))
     }
   }
-  const callPlugins = (
-    type: keyof PluginTraps,
-    target: object & { plugin?: PluginTraps[] },
-    ...values: any[]
-  ) => {
-    if (target.plugin) {
-      target.plugin.forEach((plugin) => {
-        if (plugin[type]) {
-          plugin[type].call(this, ...values)
-        }
-      })
-    }
-  }
+
   let checkVersion = versionHolder[1]
 
   const createPropListener =

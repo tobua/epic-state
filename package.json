@@ -16,7 +16,8 @@
   },
   "padua": {
     "entry": [
-      "plugin/react.ts"
+      "plugin/react.ts",
+      "plugin/persist/browser.ts"
     ]
   },
   "dependencies": {
@@ -62,8 +63,12 @@
       "default": "./dist/index.js"
     },
     "./react": {
-      "types": "./dist/react.d.ts",
-      "default": "./dist/react.js"
+      "types": "./dist/plugin/react.d.ts",
+      "default": "./dist/plugin/react.js"
+    },
+    "./browser": {
+      "types": "./dist/plugin/persist/browser.d.ts",
+      "default": "./dist/plugin/persist/browser.js"
     }
   },
   "types": "./dist/index.d.ts",

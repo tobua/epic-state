@@ -317,3 +317,25 @@ test('Added objects will also be observed.', async () => {
   expect(subscribeMock.mock.calls[1][0][3]).toEqual(['get', ['nested', 'value'], 1])
   expect(subscribeMock.mock.calls[1][0][4]).toEqual(['set', ['nested', 'value'], 2, 1])
 })
+
+test('Derived values can be added to the state.', () => {
+  // eslint-disable-next-line @typescript-eslint/no-use-before-define
+  const doubleMock = vi.fn(() => root.count * 2)
+  const root = state({ count: 1, doubleCount: doubleMock })
+
+  expect(root.count).toBe(1)
+  expect(root.doubleCount()).toBe(2)
+
+  expect(doubleMock.mock.calls.length).toBe(1)
+
+  expect(root.doubleCount()).toBe(2)
+  // TODO should not increase as value is derived.
+  expect(doubleMock.mock.calls.length).toBe(2)
+
+  root.count += 1
+
+  expect(root.count).toBe(2)
+  expect(root.doubleCount()).toBe(4)
+
+  expect(doubleMock.mock.calls.length).toBe(3)
+})

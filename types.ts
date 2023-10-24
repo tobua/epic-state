@@ -97,10 +97,12 @@ export type RootState<T, R> = T extends Set<any>
       [K in keyof Omit<T, 'plugin'>]: ChildState<T[K], T, R extends unknown ? T : R>
     }
 
-export type PluginTraps = {
+export type PluginActions = {
   get?: (property: string) => void
   set?: (property: string, value: any, previousValue: any) => void
   delete?: (property: string) => void
 }
 
-export type Plugin<T extends any[]> = (...configuration: T) => Plugin<['initialize']> | PluginTraps
+export type Plugin<T extends any[]> = (
+  ...configuration: T
+) => Plugin<['initialize']> | PluginActions
