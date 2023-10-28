@@ -74,7 +74,9 @@ type MapWithParent<T, S, P, R> = {
   root: R
 } & Map<T, S>
 
-type ChildState<E, P, R> = E extends object
+type ChildState<E, P, R> = E extends Function
+  ? E
+  : E extends object
   ? {
       parent: P
       root: R

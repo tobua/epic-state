@@ -1,10 +1,6 @@
 import { expect, test, vi } from 'vitest'
 import { observe, state } from '../index'
-
-const process = () =>
-  new Promise((done) => {
-    setTimeout(done, 1)
-  })
+import { process } from './helper'
 
 test('Can navigate through state tree using the parent property.', async () => {
   const subscribeMock = vi.fn()

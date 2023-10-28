@@ -1,10 +1,6 @@
 import { expect, test, vi } from 'vitest'
 import { state, observe, snapshot, getVersion, remove } from '../index'
-
-const process = () =>
-  new Promise((done) => {
-    setTimeout(done, 1)
-  })
+import { process } from './helper'
 
 test('Object with values is converted to a proxy and state can be changed.', () => {
   const root = state({ hello: 'world', count: 1 })

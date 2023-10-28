@@ -1,10 +1,6 @@
 import { expect, test, vi } from 'vitest'
 import { state, observe } from '../index'
-
-const process = () =>
-  new Promise((done) => {
-    setTimeout(done, 1)
-  })
+import { process } from './helper'
 
 test('Can observe changes to any state object.', async () => {
   const subscribeMock = vi.fn()

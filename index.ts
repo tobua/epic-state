@@ -215,7 +215,7 @@ export function state<T extends object, R = undefined>(
       if (property === 'root') return root // Root access untracked.
       if (property === 'plugin') return undefined // Plugin cannot be accessed or tracked.
       const value = Reflect.get(target, property, receiver)
-      if (!initialization) {
+      if (!initialization && typeof value !== 'function') {
         notifyUpdate(['get', [property], value])
         callPlugins('get', target, property)
       }
