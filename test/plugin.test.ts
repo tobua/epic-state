@@ -133,3 +133,27 @@ test('Plugins are initialized and traps accessed.', () => {
   expect(logMock.mock.calls.length).toBe(3)
   expect(logMock.mock.calls[2]).toEqual(['get', 'count'])
 })
+
+test('Plugins also receive updates from nested states.', () => {
+  const logMock = vi.fn()
+  const myLogPlugin = createLogPlugin(logMock)
+
+  const root = state({ count: 1, plugin: myLogPlugin })
+
+  // @ts-expect-error Plugin not accessible anymore.
+  expect(root.plugin).toBe(undefined)
+  expect(logMock).toHaveBeenCalled()
+  expect(logMock.mock.calls.length).toBe(1)
+
+  root.count = 2
+
+  expect(logMock.mock.calls.length).toBe(2)
+
+  expect(logMock.mock.calls[1]).toEqual(['set', 'count', 2])
+
+  const readCount = root.count
+
+  expect(readCount).toBe(2)
+  expect(logMock.mock.calls.length).toBe(3)
+  expect(logMock.mock.calls[2]).toEqual(['get', 'count'])
+})

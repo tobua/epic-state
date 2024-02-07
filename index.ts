@@ -13,8 +13,9 @@ import {
   Snapshot,
 } from './types'
 import { isObject, log } from './helper'
-import { objectMap, objectSet } from './polyfill'
+import { objectMap, objectSet } from './data/polyfill'
 import { initializePlugins, callPlugins } from './plugin'
+import { derive, track, isTracked } from './derive'
 
 export type { Plugin } from './types'
 
@@ -104,7 +105,7 @@ const proxyCache = new WeakMap<object, ProxyObject>()
 const versionHolder = [1, 1] as [number, number]
 
 // proxy function renamed to state (proxy as hidden implementation detail).
-export function state<T extends object, R = undefined>(
+export function state<T extends object, R extends object = undefined>(
   initialObject: T = {} as T,
   parent?: object,
   root?: R,
@@ -121,6 +122,7 @@ export function state<T extends object, R = undefined>(
   }
 
   initializePlugins(initialObject)
+  derive(initialObject)
   const found = proxyCache.get(initialObject) as RootState<T, R> | undefined
   if (found) return found
   let version = versionHolder[0]
@@ -218,6 +220,7 @@ export function state<T extends object, R = undefined>(
       if (!initialization && typeof value !== 'function') {
         notifyUpdate(['get', [property], value])
         callPlugins('get', target, property)
+        track(root ?? receiver, property)
       }
       return value
     },
@@ -277,6 +280,7 @@ export function state<T extends object, R = undefined>(
       if (!initialization) {
         notifyUpdate(['set', [property], value, prevValue])
         callPlugins('set', target, property, value, prevValue)
+        isTracked(root ?? receiver, property)
       }
       return true
     },

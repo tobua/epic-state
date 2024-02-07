@@ -7,7 +7,7 @@ export function initializePlugins(state: object & { plugin?: Plugin<any> | Plugi
 
   const plugins = Array.isArray(state.plugin) ? state.plugin : [state.plugin]
   // @ts-ignore
-  state.plugin = plugins.map((plugin) => plugin('initialize', state))
+  state.plugin = plugins.map((item) => item('initialize', state))
 }
 
 export function callPlugins(
@@ -17,9 +17,9 @@ export function callPlugins(
 ) {
   // TODO call general and parent plugins as well.
   if (Object.hasOwn(target, 'plugin')) {
-    target.plugin.forEach((plugin) => {
-      if (plugin[type]) {
-        plugin[type].call(this, ...values)
+    target.plugin.forEach((item) => {
+      if (item[type]) {
+        item[type].call(this, ...values)
       }
     })
   }

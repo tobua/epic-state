@@ -4,7 +4,9 @@ export type AsRef = { $$valtioRef: true }
 
 export type ProxyObject = object & { root?: ProxyObject; parent?: ProxyObject }
 
-export type Path = (string | symbol)[]
+export type Property = string | symbol
+
+export type Path = Property[]
 
 export type Operation =
   | [op: 'set', path: Path, value: unknown, prevValue: unknown]
@@ -32,10 +34,10 @@ export type SnapshotIgnore =
 export type Snapshot<T> = T extends SnapshotIgnore
   ? T
   : T extends Promise<unknown>
-  ? Awaited<T>
-  : T extends object
-  ? { readonly [K in keyof T]: Snapshot<T[K]> }
-  : T
+    ? Awaited<T>
+    : T extends object
+      ? { readonly [K in keyof T]: Snapshot<T[K]> }
+      : T
 
 export type HandlePromise = <P extends Promise<any>>(promise: P) => Awaited<P>
 
@@ -77,27 +79,28 @@ type MapWithParent<T, S, P, R> = {
 type ChildState<E, P, R> = E extends Function
   ? E
   : E extends object
-  ? {
-      parent: P
-      root: R
-    } & (E extends Array<any>
-      ? ArrayWithParent<ArrayElementType<E>, P, R>
-      : E extends Set<any>
-      ? SetWithParent<SetElementType<E>, P, R>
-      : E extends Map<any, any>
-      ? MapWithParent<MapElementType<E>[0], MapElementType<E>[1], P, R>
-      : {
-          [F in keyof Omit<E, 'plugin'>]: E[F] extends object
-            ? ChildState<E[F], ChildState<E, P, R>, R>
-            : E[F]
-        })
-  : E
+    ? {
+        parent: P
+        root: R
+      } & (E extends Array<any>
+        ? ArrayWithParent<ArrayElementType<E>, P, R>
+        : E extends Set<any>
+          ? SetWithParent<SetElementType<E>, P, R>
+          : E extends Map<any, any>
+            ? MapWithParent<MapElementType<E>[0], MapElementType<E>[1], P, R>
+            : {
+                [F in keyof Omit<E, 'plugin'>]: E[F] extends object
+                  ? ChildState<E[F], ChildState<E, P, R>, R>
+                  : E[F]
+              })
+    : E
 
-export type RootState<T, R> = T extends Set<any>
-  ? Set<SetElementType<T>>
-  : {
-      [K in keyof Omit<T, 'plugin'>]: ChildState<T[K], T, R extends unknown ? T : R>
-    }
+export type RootState<T, R> =
+  T extends Set<any>
+    ? Set<SetElementType<T>>
+    : {
+        [K in keyof Omit<T, 'plugin'>]: ChildState<T[K], T, R extends unknown ? T : R>
+      }
 
 export type PluginActions = {
   get?: (property: string) => void

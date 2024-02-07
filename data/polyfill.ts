@@ -1,4 +1,4 @@
-import type { state as State } from './index'
+import type { state as State } from '../index'
 
 type KeyValRecord<K, V> = [key: K, value: V]
 
@@ -7,7 +7,7 @@ type InternalObjectMap<K, V> = Map<K, V> & {
   toJSON: object
 }
 
-export function objectMap<K, V, R>(
+export function objectMap<K, V, R extends object>(
   state: typeof State,
   entries?: Iterable<readonly [K, V]> | null,
   parent?: object,
@@ -100,7 +100,7 @@ type InternalObjectSet<T> = Set<T> & {
   toJSON: object
 }
 
-export function objectSet<T, R>(
+export function objectSet<T, R extends object>(
   state: typeof State,
   initialValues?: Iterable<T> | null,
   parent?: object,
