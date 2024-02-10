@@ -1,5 +1,7 @@
 import { Plugin, PluginActions } from './types'
 
+const globalPlugins: PluginActions[] = []
+
 export function initializePlugins(state: object & { plugin?: Plugin<any> | Plugin<any>[] }) {
   if (!state.plugin) {
     return
@@ -15,7 +17,8 @@ export function callPlugins(
   target: object & { plugin?: PluginActions[] },
   ...values: any[]
 ) {
-  // TODO call general and parent plugins as well.
+  // TODO call parent plugins as well?
+  // Current plugin.
   if (Object.hasOwn(target, 'plugin')) {
     target.plugin.forEach((item) => {
       if (item[type]) {
@@ -23,4 +26,15 @@ export function callPlugins(
       }
     })
   }
+
+  // Global plugins.
+  globalPlugins.forEach((item) => {
+    if (item[type]) {
+      item[type].call(this, ...values)
+    }
+  })
+}
+
+export function plugin(item: PluginActions) {
+  globalPlugins.push(item)
 }

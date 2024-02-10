@@ -1,5 +1,5 @@
 import { Mock, expect, test, vi } from 'vitest'
-import { state, type Plugin } from '../index'
+import { state, type Plugin, plugin } from '../index'
 
 const createLogPlugin = (mock: Mock) =>
   ((...configuration) => {
@@ -156,4 +156,46 @@ test('Plugins also receive updates from nested states.', () => {
   expect(readCount).toBe(2)
   expect(logMock.mock.calls.length).toBe(3)
   expect(logMock.mock.calls[2]).toEqual(['get', 'count'])
+})
+
+test('Plugins can be globally registered and will apply to any state.', () => {
+  const logMock = vi.fn()
+  const myLogPlugin = {
+    // TODO pass reference to accessed state also.
+    get: (property: string) => {
+      logMock('get', property)
+    },
+    set: (property: string, value: any) => {
+      logMock('set', property, value)
+    },
+  }
+
+  plugin(myLogPlugin)
+
+  const root = state({ count: 1, nested: { count: 2 } })
+  const secondRoot = state({ count: 3 })
+
+  expect(logMock).not.toHaveBeenCalled()
+  expect(logMock.mock.calls.length).toBe(0)
+
+  expect(root.count).toBe(1)
+
+  expect(logMock.mock.calls.length).toBe(1)
+  expect(logMock.mock.calls[0]).toEqual(['get', 'count'])
+
+  root.count = 2
+
+  expect(logMock.mock.calls.length).toBe(2)
+  expect(logMock.mock.calls[1]).toEqual(['set', 'count', 2])
+
+  expect(root.nested.count).toBe(2)
+
+  expect(logMock.mock.calls.length).toBe(4)
+  expect(logMock.mock.calls[2]).toEqual(['get', 'nested'])
+  expect(logMock.mock.calls[3]).toEqual(['get', 'count'])
+
+  expect(secondRoot.count).toBe(3)
+
+  expect(logMock.mock.calls.length).toBe(5)
+  expect(logMock.mock.calls[0]).toEqual(['get', 'count'])
 })

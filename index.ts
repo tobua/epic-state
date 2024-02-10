@@ -14,10 +14,11 @@ import {
 } from './types'
 import { isObject, log } from './helper'
 import { objectMap, objectSet } from './data/polyfill'
-import { initializePlugins, callPlugins } from './plugin'
+import { initializePlugins, callPlugins, plugin } from './plugin'
 import { derive, track, isTracked } from './derive'
 
 export type { Plugin } from './types'
+export { plugin }
 
 // Shared State, Map with links to all states created.
 const proxyStateMap = new Map<ProxyObject, ProxyState>()

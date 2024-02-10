@@ -335,3 +335,17 @@ test('Derived values can be added to the state.', () => {
 
   expect(doubleMock.mock.calls.length).toBe(3)
 })
+
+test('Promises on state are resolved.', async () => {
+  const root = state({
+    promise: new Promise((done) => {
+      setTimeout(() => done('hello'), 10)
+    }),
+    rejectedPromise: new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('fail')), 10)
+    }),
+  })
+
+  expect(await root.promise).toBe('hello')
+  expect(async () => root.rejectedPromise).rejects.toEqual(new Error('fail'))
+})
