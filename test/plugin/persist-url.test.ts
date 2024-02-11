@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 
 import { afterEach, expect, test } from 'vitest'
-import { state } from '../index'
-import { persistUrl } from '../plugin/persist/browser'
+import { state } from '../../index'
+import { persistUrl } from '../../plugin/persist/browser'
 
 interface ExtendedLocation extends Location {
   searchParams: URLSearchParams
@@ -89,4 +89,35 @@ test('Can configure which properties should be persisted.', () => {
 
   expect(location.searchParams.get('first')).toBe('3')
   expect(location.searchParams.get('second')).toBe('6')
+})
+
+test('Can configure multiple properties to be persisted.', () => {
+  location.href = 'http://localhost:3000/?first=3&second=4&third=5&fourth=6'
+  const root = state({
+    first: 1,
+    second: 2,
+    third: 3,
+    fourth: 4,
+    plugin: persistUrl('second', 'fourth'),
+  })
+
+  expect(root.first).toBe(1)
+  expect(root.second).toBe(4)
+  expect(root.third).toBe(3)
+  expect(root.fourth).toBe(6)
+
+  expect(location.searchParams.get('first')).toBe('3') // Ignored parameter remains untouched.
+  expect(location.searchParams.get('second')).toBe('4')
+  expect(location.searchParams.get('third')).toBe('5')
+  expect(location.searchParams.get('fourth')).toBe('6')
+
+  root.first = 9
+  root.second = 9
+  root.third = 9
+  root.fourth = 9
+
+  expect(location.searchParams.get('first')).toBe('3')
+  expect(location.searchParams.get('second')).toBe('9')
+  expect(location.searchParams.get('third')).toBe('5')
+  expect(location.searchParams.get('fourth')).toBe('9')
 })

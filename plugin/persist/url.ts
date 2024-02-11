@@ -68,7 +68,7 @@ export const persistUrl: Plugin<string[]> = (...configuration) => {
 
   return (...innerConfiguration: any) => {
     if (innerConfiguration[0] !== 'initialize') {
-      log('Plugin has already been configured', 'warning')
+      log('persistUrl: Plugin has already been configured', 'warning')
     }
 
     initializeUrl(innerConfiguration[1] as any, properties)
