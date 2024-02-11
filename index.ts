@@ -14,11 +14,12 @@ import {
 } from './types'
 import { isObject, log } from './helper'
 import { objectMap, objectSet } from './data/polyfill'
+import { list } from './data/list'
 import { initializePlugins, callPlugins, plugin } from './plugin'
 import { derive, track, isTracked } from './derive'
 
 export type { Plugin } from './types'
-export { plugin }
+export { plugin, list }
 
 // Shared State, Map with links to all states created.
 const proxyStateMap = new Map<ProxyObject, ProxyState>()
@@ -58,6 +59,15 @@ const defaultHandlePromise = <P extends Promise<any>>(
       // eslint-disable-next-line @typescript-eslint/no-throw-literal
       throw promise
   }
+}
+
+// NOTE copy is required for proper function.
+const createBaseObject = (initialObject: object) => {
+  if (Array.isArray(initialObject)) {
+    return []
+  }
+
+  return Object.create(Object.getPrototypeOf(initialObject))
 }
 
 const snapCache = new WeakMap<object, [version: number, snap: unknown]>()
@@ -199,9 +209,8 @@ export function state<T extends object, R extends object = undefined>(
     }
     return removeListener
   }
-  const baseObject = Array.isArray(initialObject)
-    ? []
-    : Object.create(Object.getPrototypeOf(initialObject))
+
+  const baseObject = createBaseObject(initialObject)
   const handler: ProxyHandler<T> = {
     deleteProperty(target, property) {
       const prevValue = Reflect.get(target, property)
@@ -262,7 +271,14 @@ export function state<T extends object, R extends object = undefined>(
             notifyUpdate(['reject', [property], e])
           })
       } else {
-        if (!proxyStateMap.has(value) && canProxy(value)) {
+        if (initialization && typeof value === 'function' && value.requiresInitialization) {
+          // Custom data structures.
+          const { data, after } = value(state)
+          nextValue = state(data, receiver, root ?? receiver)
+          if (typeof after === 'function') {
+            after(nextValue)
+          }
+        } else if (!proxyStateMap.has(value) && canProxy(value)) {
           nextValue = state(value, receiver, root ?? receiver)
         } else if (canPolyfill(value)) {
           // TODO Necessary that Map or Set cannot be root?
