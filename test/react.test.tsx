@@ -1,7 +1,6 @@
-// @vitest-environment happy-dom
-
+import './setup-dom'
 import React from 'react'
-import { expect, test } from 'vitest'
+import { expect, test } from 'bun:test'
 import { act, render } from '@testing-library/react'
 import { state } from '../index'
 import { connect } from '../plugin/react'

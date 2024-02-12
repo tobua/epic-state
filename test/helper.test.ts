@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest'
+import { expect, test } from 'bun:test'
 import { listGetters } from '../helper'
 
 test('Correctly recoginizes getter values on an object.', () => {

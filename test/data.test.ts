@@ -1,4 +1,4 @@
-import { expect, test, vi } from 'vitest'
+import { expect, test, mock } from 'bun:test'
 import { state, observe, list } from '../index'
 import { process } from './helper'
 
@@ -14,7 +14,7 @@ test('list: empty list initialized properly.', () => {
 })
 
 test('list: list can be initialized with values, values can be read and are reactive.', async () => {
-  const subscribeMock = vi.fn()
+  const subscribeMock = mock()
   const counterComplex = (intialCount: number) => {
     const data = {
       nested: {

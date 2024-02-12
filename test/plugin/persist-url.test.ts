@@ -1,6 +1,5 @@
-// @vitest-environment happy-dom
-
-import { afterEach, expect, test } from 'vitest'
+import '../setup-dom'
+import { beforeEach, expect, test } from 'bun:test'
 import { state } from '../../index'
 import { persistUrl } from '../../plugin/persist/browser'
 
@@ -10,7 +9,7 @@ interface ExtendedLocation extends Location {
 
 const { location } = window as unknown as { location: ExtendedLocation }
 
-afterEach(() => {
+beforeEach(() => {
   // Reset URL after each test.
   window.location.href = 'http://localhost:3000'
 })

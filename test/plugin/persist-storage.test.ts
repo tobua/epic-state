@@ -1,6 +1,5 @@
-// @vitest-environment happy-dom
-
-import { afterEach, expect, test } from 'vitest'
+import '../setup-dom'
+import { afterEach, expect, test } from 'bun:test'
 import { state } from '../../index'
 import { persistStorage } from '../../plugin/persist/browser'
 

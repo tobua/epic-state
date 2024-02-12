@@ -1,9 +1,9 @@
-import { expect, test, vi } from 'vitest'
+import { expect, test, mock } from 'bun:test'
 import { observe, state } from '../index'
 import { process } from './helper'
 
 test('Can navigate through state tree using the parent property.', async () => {
-  const subscribeMock = vi.fn()
+  const subscribeMock = mock()
   const root = state({
     id: 1,
     nested: { id: 2, nested: { id: 3 } },

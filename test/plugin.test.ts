@@ -1,24 +1,25 @@
-import { Mock, expect, test, vi } from 'vitest'
+import './setup-dom'
+import { Mock, expect, test, mock } from 'bun:test'
 import { state, type Plugin, plugin } from '../index'
 
-const createLogPlugin = (mock: Mock) =>
+const createLogPlugin = (currentMock: Mock<any>) =>
   ((...configuration) => {
     let properties: string[]
     const traps = {
       get: (property: string) => {
         if (!properties || (properties ?? []).includes(property)) {
-          mock('get', property)
+          currentMock('get', property)
         }
       },
       set: (property: string, value: any) => {
         if (!properties || (properties ?? []).includes(property)) {
-          mock('set', property, value)
+          currentMock('set', property, value)
         }
       },
     }
 
     if (configuration[0] === 'initialize') {
-      mock('initialize')
+      currentMock('initialize')
       return traps
     }
 
@@ -26,7 +27,7 @@ const createLogPlugin = (mock: Mock) =>
     properties = configuration
 
     const initializePlugin = () => {
-      mock('initialize')
+      currentMock('initialize')
       return traps
     }
 
@@ -34,7 +35,7 @@ const createLogPlugin = (mock: Mock) =>
   }) as Plugin<string[]>
 
 test('Can create a plugin.', () => {
-  const logMock = vi.fn()
+  const logMock = mock()
   const myLogPlugin = createLogPlugin(logMock)
   // Configuration
   const configured = myLogPlugin('count')
@@ -58,7 +59,7 @@ test('Can create a plugin.', () => {
 })
 
 test('Can pass one or more plugins to the state.', () => {
-  const logMock = vi.fn()
+  const logMock = mock()
   const myLogPlugin = createLogPlugin(logMock)
 
   const root = state({ count: 1, plugin: myLogPlugin })
@@ -91,7 +92,7 @@ test('Can pass one or more plugins to the state.', () => {
 })
 
 test('Can pass plugin at every stage during initialization.', () => {
-  const logMock = vi.fn()
+  const logMock = mock()
   const myLogPlugin = createLogPlugin(logMock)
   const root = state({ count: 1, nested: { count: 2, plugin: myLogPlugin } })
 
@@ -111,7 +112,7 @@ test('Can pass plugin at every stage during initialization.', () => {
 })
 
 test('Plugins are initialized and traps accessed.', () => {
-  const logMock = vi.fn()
+  const logMock = mock()
   const myLogPlugin = createLogPlugin(logMock)
 
   const root = state({ count: 1, plugin: myLogPlugin })
@@ -135,7 +136,7 @@ test('Plugins are initialized and traps accessed.', () => {
 })
 
 test('Plugins also receive updates from nested states.', () => {
-  const logMock = vi.fn()
+  const logMock = mock()
   const myLogPlugin = createLogPlugin(logMock)
 
   const root = state({ count: 1, plugin: myLogPlugin })
@@ -159,7 +160,7 @@ test('Plugins also receive updates from nested states.', () => {
 })
 
 test('Plugins can be globally registered and will apply to any state.', () => {
-  const logMock = vi.fn()
+  const logMock = mock()
   const myLogPlugin = {
     // TODO pass reference to accessed state also.
     get: (property: string) => {

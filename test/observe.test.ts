@@ -1,9 +1,9 @@
-import { expect, test, vi } from 'vitest'
+import { expect, test, mock } from 'bun:test'
 import { state, observe } from '../index'
 import { process } from './helper'
 
 test('Can observe changes to any state object.', async () => {
-  const subscribeMock = vi.fn()
+  const subscribeMock = mock()
   const firstRoot = state({ count: 1 })
   const secondRoot = state({ count: 2 })
 
@@ -34,7 +34,7 @@ test('Can observe changes to any state object.', async () => {
 })
 
 test("Nested general observations don't lead to multiple notifications.", async () => {
-  const subscribeMock = vi.fn()
+  const subscribeMock = mock()
   const firstRoot = state({ count: 1, nested: { count: 3 } })
   const secondRoot = state({ count: 2, nested: { count: 4 } })
 
@@ -59,7 +59,7 @@ test("Nested general observations don't lead to multiple notifications.", async 
 })
 
 test('NotifyInSync options does not require a process() call for events to be observed.', async () => {
-  const subscribeMock = vi.fn()
+  const subscribeMock = mock()
   const root = state({ count: 1 })
 
   observe(subscribeMock, undefined, true)

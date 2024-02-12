@@ -1,8 +1,8 @@
-import { expect, test, vi } from 'vitest'
+import { expect, test, mock } from 'bun:test'
 import { state } from '../index'
 
 test('Derived values will only be recalcuated when any of the attached values have changed.', async () => {
-  const doubleMock = vi.fn((root) => root.count * 2)
+  const doubleMock = mock((root) => root.count * 2)
   const root = state({
     count: 1,
     get double() {
@@ -39,7 +39,7 @@ test('Derived values will only be recalcuated when any of the attached values ha
 })
 
 test('Changes that have no effect are ignored.', async () => {
-  const doubleMock = vi.fn((root) => root.count * 2)
+  const doubleMock = mock((root) => root.count * 2)
   const root = state({
     count: 1,
     get double() {
@@ -70,7 +70,7 @@ test('Changes that have no effect are ignored.', async () => {
 })
 
 test('Can differentiate between getters and actions.', () => {
-  const doubleMock = vi.fn((root) => root.count * 2)
+  const doubleMock = mock((root) => root.count * 2)
   const root = state({
     count: 1,
     get double() {
@@ -109,7 +109,7 @@ test('Can differentiate between getters and actions.', () => {
 })
 
 test('Derived values are properly updated in nested structures.', () => {
-  const doubleMock = vi.fn((root) => root.firstCount + root.secondCount.value)
+  const doubleMock = mock((root) => root.firstCount + root.secondCount.value)
   const root = state({
     firstCount: 1,
     secondCount: {

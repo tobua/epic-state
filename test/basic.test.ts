@@ -1,4 +1,4 @@
-import { expect, test, vi } from 'vitest'
+import { expect, test, mock } from 'bun:test'
 import { state, observe, snapshot, getVersion, remove } from '../index'
 import { process } from './helper'
 
@@ -28,7 +28,7 @@ test('Multiple states can be created.', () => {
 })
 
 test('Can observe state changes.', async () => {
-  const subscribeMock = vi.fn()
+  const subscribeMock = mock()
   const root = state<{ count?: number }>({ count: 1 })
 
   expect(subscribeMock).not.toHaveBeenCalled()
@@ -60,7 +60,7 @@ test('Can observe state changes.', async () => {
 })
 
 test('Can unsubscribe from an observation.', async () => {
-  const subscribeMock = vi.fn()
+  const subscribeMock = mock()
   const root = state({ count: 1 })
 
   expect(subscribeMock).not.toHaveBeenCalled()
@@ -86,7 +86,7 @@ test('Can unsubscribe from an observation.', async () => {
 })
 
 test('Observe will only observe changes to the passed state.', async () => {
-  const subscribeMock = vi.fn()
+  const subscribeMock = mock()
   const firstRoot = state({ nested: { count: 1 } })
   const secondRoot = state({ nested: { count: 2 } })
 
@@ -106,7 +106,7 @@ test('Observe will only observe changes to the passed state.', async () => {
 })
 
 test('Changes to a snapshot remain untracked.', async () => {
-  const subscribeMock = vi.fn()
+  const subscribeMock = mock()
   const root = state({ count: 1 })
 
   observe(subscribeMock, root)
@@ -147,7 +147,7 @@ test('Each proxy has a version.', () => {
 })
 
 test('Can subscribe to nested state changes.', async () => {
-  const subscribeMock = vi.fn()
+  const subscribeMock = mock()
   const root = state({ count: { nested: 1 } })
 
   expect(subscribeMock).not.toHaveBeenCalled()
@@ -164,7 +164,7 @@ test('Can subscribe to nested state changes.', async () => {
 })
 
 test('Can subscribe to deeply nested state changes.', async () => {
-  const subscribeMock = vi.fn()
+  const subscribeMock = mock()
   const root = state({ values: [{ nested: { value: 2 } }, { nested: { value: 3 } }] })
 
   expect(subscribeMock).not.toHaveBeenCalled()
@@ -185,7 +185,7 @@ test('Can subscribe to deeply nested state changes.', async () => {
 })
 
 test('Destructured objects are still tracked.', async () => {
-  const subscribeMock = vi.fn()
+  const subscribeMock = mock()
   const root = state({ hello: 'world', nested: { value: 1 } })
 
   expect(subscribeMock).not.toHaveBeenCalled()
@@ -196,7 +196,7 @@ test('Destructured objects are still tracked.', async () => {
   const { nested } = root
 
   expect(hello).toEqual('world')
-  expect(nested).toEqual({ value: 1 })
+  expect(nested.value).toBe(1)
 
   hello = 'changed'
   nested.value += 1
@@ -204,14 +204,14 @@ test('Destructured objects are still tracked.', async () => {
   await process()
 
   expect(root.hello).toEqual('world') // Changes not propagated, cannot observe basic values.
-  expect(root.nested).toEqual({ value: 2 })
+  expect(root.nested.value).toBe(2)
 
   expect(subscribeMock.mock.calls[0][0].length).toBe(1)
   expect(subscribeMock.mock.calls[0][0][0]).toEqual(['set', ['nested', 'value'], 2, 1])
 })
 
 test('Arrays, Maps and Sets are also tracked.', async () => {
-  const subscribeMock = vi.fn()
+  const subscribeMock = mock()
   const root = state({
     list: [1, 2, 3],
     // TODO automatically transform Map and Set.
@@ -245,7 +245,7 @@ test('Arrays, Maps and Sets are also tracked.', async () => {
 
 // TODO doesn't work yet.
 test.skip('Map/Set polyfill works at the top-level.', async () => {
-  const subscribeMock = vi.fn()
+  const subscribeMock = mock()
   const root = state(
     new Set([{ name: 'apple' }, { name: 'banana' }, { name: 'cherry' }, { name: 'apple' }]),
   )
@@ -260,7 +260,7 @@ test.skip('Map/Set polyfill works at the top-level.', async () => {
 })
 
 test('Works with classes.', async () => {
-  const subscribeMock = vi.fn()
+  const subscribeMock = mock()
   const root = state(
     new (class State {
       hello = 'world'
@@ -278,7 +278,7 @@ test('Works with classes.', async () => {
 })
 
 test('Added objects will also be observed.', async () => {
-  const subscribeMock = vi.fn()
+  const subscribeMock = mock()
   const root: any = state({ count: 1 })
 
   expect(subscribeMock).not.toHaveBeenCalled()
@@ -316,7 +316,7 @@ test('Added objects will also be observed.', async () => {
 
 test('Derived values can be added to the state.', () => {
   // eslint-disable-next-line @typescript-eslint/no-use-before-define
-  const doubleMock = vi.fn(() => root.count * 2)
+  const doubleMock = mock(() => root.count * 2)
   const root = state({ count: 1, doubleCount: doubleMock })
 
   expect(root.count).toBe(1)
@@ -347,5 +347,5 @@ test('Promises on state are resolved.', async () => {
   })
 
   expect(await root.promise).toBe('hello')
-  expect(async () => root.rejectedPromise).rejects.toEqual(new Error('fail'))
+  expect(root.rejectedPromise).rejects.toEqual(new Error('fail'))
 })

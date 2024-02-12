@@ -1,9 +1,9 @@
-import { expect, test, vi } from 'vitest'
+import { expect, test, mock } from 'bun:test'
 import { state, observe } from '../index'
 import { process } from './helper'
 
 test('Methods added to the state will not be tracked or converted to a proxy.', async () => {
-  const subscribeMock = vi.fn()
+  const subscribeMock = mock()
   const root = state({
     count: 1,
     increment: () => {
