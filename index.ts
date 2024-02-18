@@ -132,7 +132,7 @@ export function state<T extends object, R extends object = undefined>(
     log('"root" property is reserved on state objects to reference the root', 'warning')
   }
 
-  initializePlugins(initialObject)
+  const plugins = initializePlugins(initialObject)
   derive(initialObject)
   const found = proxyCache.get(initialObject) as RootState<T, R> | undefined
   if (found) return found
@@ -218,7 +218,8 @@ export function state<T extends object, R extends object = undefined>(
       const deleted = Reflect.deleteProperty(target, property)
       if (deleted) {
         notifyUpdate(['delete', [property], prevValue])
-        callPlugins('delete', target, property)
+        // TODO no receiver, no parent access?
+        callPlugins({ type: 'delete', target, initial: true }, property)
       }
       return deleted
     },
@@ -226,10 +227,11 @@ export function state<T extends object, R extends object = undefined>(
       if (property === 'parent') return parent // Parent access untracked.
       if (property === 'root') return root // Root access untracked.
       if (property === 'plugin') return undefined // Plugin cannot be accessed or tracked.
+      if (property === '_plugin') return plugins // Internal plugin access.
       const value = Reflect.get(target, property, receiver)
       if (!initialization && typeof value !== 'function') {
         notifyUpdate(['get', [property], value])
-        callPlugins('get', target, property)
+        callPlugins({ type: 'get', target: receiver, initial: true }, property)
         track(root ?? receiver, property)
       }
       return value
@@ -296,7 +298,7 @@ export function state<T extends object, R extends object = undefined>(
       Reflect.set(target, property, nextValue, receiver)
       if (!initialization) {
         notifyUpdate(['set', [property], value, prevValue])
-        callPlugins('set', target, property, value, prevValue)
+        callPlugins({ type: 'set', target: receiver, initial: true }, property, value, prevValue)
         isTracked(root ?? receiver, property)
       }
       return true

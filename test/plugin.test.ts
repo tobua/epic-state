@@ -200,3 +200,25 @@ test('Plugins can be globally registered and will apply to any state.', () => {
   expect(logMock.mock.calls.length).toBe(5)
   expect(logMock.mock.calls[0]).toEqual(['get', 'count'])
 })
+
+test('Plugins will be inherited by nested objects.', () => {
+  const logMock = mock()
+  const myLogPlugin = createLogPlugin(logMock)
+
+  const root = state({ count: 1, plugin: myLogPlugin, nested: { count: 2 } })
+
+  // @ts-expect-error Plugin not accessible anymore.
+  expect(root.plugin).toBe(undefined)
+  expect(logMock.mock.calls.length).toBe(1)
+
+  root.count = 2
+  root.nested.count = 4
+
+  expect(logMock.mock.calls.length).toBe(4)
+  expect(logMock.mock.calls[1][0]).toBe('set')
+  expect(logMock.mock.calls[1][1]).toBe('count')
+  expect(logMock.mock.calls[1][2]).toBe(2)
+  expect(logMock.mock.calls[3][0]).toBe('set')
+  expect(logMock.mock.calls[3][1]).toBe('count')
+  expect(logMock.mock.calls[3][2]).toBe(4)
+})

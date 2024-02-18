@@ -8,7 +8,7 @@ Reactive state management for frontend libraries.
 - Local and global plugins
 - Navigatable state-tree structure
 - Built-in TypeScript types
-- Automatic React integration without component wrapper
+- Automatic Preact and epic-jsx integration without component wrapper
 - Map, Set support
 
 ## Usage
@@ -55,7 +55,7 @@ Plugins - much like an observer - receive updates to the state but plugins can a
 
 ```ts
 import { state, plugin } from 'epic-state'
-import { connect } from 'epic-state/react'
+import { connect } from 'epic-state/preact'
 import { persistUrl } from 'epic-state/persist'
 
 // Register plugin globally to any state updates.

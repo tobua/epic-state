@@ -4,28 +4,44 @@ const globalPlugins: PluginActions[] = []
 
 export function initializePlugins(state: object & { plugin?: Plugin<any> | Plugin<any>[] }) {
   if (!state.plugin) {
-    return
+    return undefined
   }
 
   const plugins = Array.isArray(state.plugin) ? state.plugin : [state.plugin]
   // @ts-ignore
   state.plugin = plugins.map((item) => item('initialize', state))
+
+  return state.plugin
 }
 
+type CallPluginOptions = {
+  type: keyof PluginActions
+  // Use _plugin to access plugins internally (not exposed).
+  target: object & { _plugin?: PluginActions[]; parent?: object }
+  initial?: boolean
+}
+
+// NOTE accessing values in here can also lead to recursive calls.
 export function callPlugins(
-  type: keyof PluginActions,
-  target: object & { plugin?: PluginActions[] },
+  { type, target, initial = false }: CallPluginOptions,
   ...values: any[]
 ) {
-  // TODO call parent plugins as well?
   // Current plugin.
-  if (Object.hasOwn(target, 'plugin')) {
-    target.plugin.forEach((item) => {
+  if (target._plugin) {
+    target._plugin.forEach((item) => {
       if (item[type]) {
         item[type].call(this, ...values)
       }
     })
   }
+
+  // TODO make plugin inheritance configurable.
+  // Recursively invoke plugins found on parents (which are inherited).
+  if (target.parent) {
+    callPlugins({ type, target: target.parent }, ...values)
+  }
+
+  if (!initial) return
 
   // Global plugins.
   globalPlugins.forEach((item) => {
