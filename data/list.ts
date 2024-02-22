@@ -4,7 +4,7 @@ import { RootState } from '../types'
 // Augments an array with elements connected to parent.
 export function list<T extends object, K>(template: (value: K) => T, initialValues: K[] = []) {
   type ExtendedInstance = { remove: () => void }
-  type ExtendedList<A> = { add: (value: A) => void }
+  type ExtendedList<A> = { add: (value: A) => void; replace: (values: A[]) => void; size: number }
   type InstancePartial<A> = RootState<A & Partial<ExtendedInstance>, any>
   type Instance<A> = RootState<A & ExtendedInstance, any>
 
@@ -30,12 +30,29 @@ export function list<T extends object, K>(template: (value: K) => T, initialValu
           const newInstance = extendInstance(state(template(value)), data)
           data.push(newInstance)
         }
+        data.replace = (values: K[]) => {
+          const instances = values.map((value) => extendInstance(state(template(value)), data))
+          data.splice(0, data.length, ...instances) // Inline replace array elements.
+        }
+        Object.defineProperty(data, 'size', {
+          get() {
+            return data.length
+          },
+        })
       },
     }
   }
 
   // Will later be picked up by state() call.
   initializer.requiresInitialization = true
+
+  // ALTERNATIVE: return initializer as unknown as ExtendedList<Instance<T>, T>
+  // Errors with private type cannot be exported...
+  // interface ExtendedList<A, B> extends Array<A> {
+  //   add: (value: B) => void
+  //   replace: (values: B[]) => void
+  //   size: number
+  // }
 
   // Only resulting type will be exposed outwardly.
   return initializer as unknown as Instance<T>[] & ExtendedList<K>

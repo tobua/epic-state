@@ -53,4 +53,9 @@ export function callPlugins(
 
 export function plugin(item: PluginActions) {
   globalPlugins.push(item)
+
+  return function removePlugin() {
+    const remainingGlobalPlugins = globalPlugins.filter((currentPlugin) => item !== currentPlugin)
+    globalPlugins.splice(0, globalPlugins.length, ...remainingGlobalPlugins)
+  }
 }

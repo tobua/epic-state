@@ -1,6 +1,6 @@
 import { expect, test, mock } from 'bun:test'
-import { state, observe, list } from '../index'
-import { process } from './helper'
+import { state, observe, list } from '../../index'
+import { process } from '../helper'
 
 const counter = (initialCount: number) => ({
   count: initialCount,
@@ -62,6 +62,21 @@ test('list: list can be initialized with values, values can be read and are reac
   expect(setterCalls[1]).toEqual(['set', ['complexList', '1', 'nested', 'count'], 8, 4])
 })
 
+test('list: data structure is an extended array.', () => {
+  const root = state({ data: list(counter, [1]) })
+
+  expect(root.data.splice).toBeDefined()
+  expect(root.data.size).toBe(1)
+  expect(root.data.length).toBe(1)
+  expect(Array.isArray(root.data)).toBe(true)
+
+  root.data.add(2)
+
+  expect(root.data.size).toBe(2)
+
+  expect(root.data.map((item) => item.count)).toEqual([1, 2])
+})
+
 test('list: element instances can be added to list through custom add() method.', () => {
   const root = state({ data: list(counter) })
 
@@ -69,6 +84,37 @@ test('list: element instances can be added to list through custom add() method.'
 
   expect(root.data.length).toBe(1)
   expect(root.data[0].count).toBe(1)
+})
+
+test('list: all elements can be replaced with replace.', () => {
+  const root = state({ data: list(counter) })
+
+  root.data.replace([1, 2])
+
+  expect(root.data.length).toBe(2)
+  expect(root.data[0].count).toBe(1)
+  expect(root.data[1].count).toBe(2)
+})
+
+test('list: changes to list are observed.', async () => {
+  const observeMock = mock()
+  const root = state({ data: list(counter) })
+
+  observe(observeMock, root)
+
+  root.data.replace([1])
+
+  await process()
+
+  expect(observeMock.mock.calls.length).toBe(1)
+  expect(root.data.length).toBe(1)
+
+  root.data.replace([1, 2])
+
+  await process()
+
+  expect(observeMock.mock.calls.length).toBe(2)
+  expect(root.data.length).toBe(2)
 })
 
 test('list: element instances can be removed without reference to the parent.', () => {

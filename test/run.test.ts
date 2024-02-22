@@ -16,7 +16,7 @@ test('Object with values is converted to a proxy and state can be changed.', () 
   const handler = () => root.count * 2 + root.nested.anotherCount
   const runMock = mock(handler)
 
-  run(runMock)
+  const unregister = run(runMock)
 
   expect(runMock).toHaveBeenCalledTimes(1) // Runs once initially.
   expect(runMock.mock.calls[0].length).toBe(0)
@@ -45,4 +45,6 @@ test('Object with values is converted to a proxy and state can be changed.', () 
   delete root.count
 
   expect(runMock).toHaveBeenCalledTimes(5)
+
+  unregister()
 })

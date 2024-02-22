@@ -1,7 +1,7 @@
 import { plugin } from './plugin'
 
 const runners: { observedProperties: Map<string, Function[]>; handler: Function }[] = []
-const pluginRegistered = false
+let pluginRegistered: () => void | undefined
 let runningHandler: { observedProperties: Map<string, Function[]>; handler: Function } | undefined
 
 function runHandler(handler: Function, observedProperties: Map<string, Function[]>) {
@@ -33,7 +33,7 @@ function observeProperty(property: string, handler: Function) {
 
 export function run(handler: Function) {
   if (!pluginRegistered) {
-    plugin({
+    pluginRegistered = plugin({
       set: (property: string, value: any, previousValue: any) => {
         if (value === previousValue) return
         runHandlersObservingProperty(property)
@@ -52,4 +52,13 @@ export function run(handler: Function) {
   const observedProperties = new Map<string, Function[]>()
   runHandler(handler, observedProperties)
   runners.push({ observedProperties, handler })
+
+  return function unregister() {
+    const remainingRunners = runners.filter((runner) => runner.handler !== handler)
+    runners.splice(0, runners.length, ...remainingRunners)
+
+    if (remainingRunners.length === 0 && pluginRegistered) {
+      pluginRegistered() // Unregister plugin.
+    }
+  }
 }
