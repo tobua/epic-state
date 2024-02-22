@@ -20,6 +20,7 @@ import { derive, track, isTracked } from './derive'
 
 export type { Plugin } from './types'
 export { plugin, list }
+export { run } from './run'
 
 // Shared State, Map with links to all states created.
 const proxyStateMap = new Map<ProxyObject, ProxyState>()

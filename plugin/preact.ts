@@ -104,6 +104,10 @@ export const connect: Plugin<string[]> = (initialize) => {
     },
     get: (property: string) => {
       if (!currentComponent) return // Accessed outside a component.
+      if (!currentComponent._updater) {
+        log('Missing _updater on component', 'warning')
+        return
+      }
 
       // Register rerender on current component.
       if (!observedProperties.has(property)) {
