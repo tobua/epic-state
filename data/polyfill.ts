@@ -164,7 +164,7 @@ export function objectSet<T, R extends object>(
     },
   }
 
-  const set: InternalObjectSet<T> = state(polyfill, parent, root) as Set<T> & {
+  const set: InternalObjectSet<T> = state(polyfill, parent, root) as unknown as Set<T> & {
     data: T[]
     toJSON: () => string
   }

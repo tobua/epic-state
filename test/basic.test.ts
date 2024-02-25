@@ -59,6 +59,40 @@ test('Can observe state changes.', async () => {
   expect(subscribeMock.mock.calls[0][0][3]).toEqual(['delete', ['count'], 2])
 })
 
+test('State changes after async waiting period are observed.', async () => {
+  const subscribeMock = mock()
+  const root = state({
+    count: 1,
+    async increment() {
+      await new Promise((done) => {
+        setTimeout(done, 10)
+      })
+      root.count += 1
+    },
+  })
+
+  const removeObserve = observe(subscribeMock, root, true)
+
+  expect(root.count).toBe(1)
+  expect(subscribeMock).toHaveBeenCalledTimes(1) // get call.
+
+  await root.increment()
+
+  expect(root.count).toBe(2)
+  expect(subscribeMock).toHaveBeenCalledTimes(4) // get from increment, set from increment and get from expect.
+
+  root.increment()
+
+  await new Promise((done) => {
+    setTimeout(done, 20)
+  })
+
+  expect(root.count).toBe(3)
+  expect(subscribeMock).toHaveBeenCalledTimes(7)
+
+  removeObserve()
+})
+
 test('Can unsubscribe from an observation.', async () => {
   const subscribeMock = mock()
   const root = state({ count: 1 })

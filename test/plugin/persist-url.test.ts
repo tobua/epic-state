@@ -33,7 +33,8 @@ test('Existing pathname remains.', () => {
 
 test('Initial state is overridden with state from URL if property is found on the state.', () => {
   location.href = 'http://localhost:3000/nested/page?page=0&count=10&missing=gone'
-  const root = state({ page: 1, count: undefined, plugin: persistUrl })
+  const initialObject = { page: 1, count: undefined, plugin: persistUrl }
+  const root = state<Omit<typeof initialObject, 'count'> & { count?: string }>(initialObject)
 
   expect(root.page).toBe(0)
   expect(root.count).toBe('10')

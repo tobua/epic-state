@@ -5,7 +5,7 @@ import { RootState } from '../types'
 export function list<T extends object, K>(template: (value: K) => T, initialValues: K[] = []) {
   type ExtendedInstance = { remove: () => void }
   type ExtendedList<A> = { add: (value: A) => void; replace: (values: A[]) => void; size: number }
-  type InstancePartial<A> = RootState<A & Partial<ExtendedInstance>, any>
+  type InstancePartial<A> = A & Partial<ExtendedInstance>
   type Instance<A> = RootState<A & ExtendedInstance, any>
 
   function extendInstance(

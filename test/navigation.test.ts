@@ -1,15 +1,17 @@
 import { expect, test, mock } from 'bun:test'
-import { observe, state } from '../index'
+import { type RootState, observe, state } from '../index'
 import { process } from './helper'
 
 test('Can navigate through state tree using the parent property.', async () => {
   const subscribeMock = mock()
-  const root = state({
+  const initialObject = {
     id: 1,
     nested: { id: 2, nested: { id: 3 } },
     alsoNested: { id: 4 },
     list: [1, 2],
-  })
+  }
+  // Custom properties are only accessible when typed accordinly to avoid confusion when working with regular state.
+  const root = state(initialObject) as RootState<typeof initialObject, typeof initialObject>
 
   observe(subscribeMock, root)
 
@@ -39,14 +41,15 @@ test('Can navigate through state tree using the parent property.', async () => {
 })
 
 test('Root property attached to any state object pointing to the root state.', async () => {
-  const root = state({
+  const initialObject = {
     id: 1,
     nested: { id: 2, nested: { id: 3 } },
     alsoNested: { id: 4 },
     list: [1, 2],
     map: new Map<string, string>([['hello', 'world']]),
     set: new Set(['hello', 'world']),
-  })
+  }
+  const root = state(initialObject) as RootState<typeof initialObject, typeof initialObject>
 
   // @ts-expect-error
   expect(root.root).toBe(undefined)

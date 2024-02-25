@@ -9,69 +9,30 @@ import {
   ProxyObject,
   ProxyState,
   RemoveListener,
-  RootState,
   Snapshot,
 } from './types'
-import { isObject, log } from './helper'
+import {
+  isObject,
+  log,
+  newProxy,
+  canProxy,
+  canPolyfill,
+  defaultHandlePromise,
+  createBaseObject,
+  snapCache,
+} from './helper'
 import { objectMap, objectSet } from './data/polyfill'
 import { list } from './data/list'
 import { initializePlugins, callPlugins, plugin } from './plugin'
 import { derive, track, isTracked } from './derive'
 
-export type { Plugin } from './types'
+export type { Plugin, RootState } from './types'
 export { plugin, list }
 export { run } from './run'
 
 // Shared State, Map with links to all states created.
 const proxyStateMap = new Map<ProxyObject, ProxyState>()
 const refSet = new WeakSet()
-
-const objectIs = Object.is
-const newProxy = <T extends object>(target: T, handler: ProxyHandler<T>): T =>
-  new Proxy(target, handler)
-const canProxy = (x: unknown) =>
-  isObject(x) &&
-  !refSet.has(x) &&
-  (Array.isArray(x) || !(Symbol.iterator in x)) &&
-  !(x instanceof WeakMap) &&
-  !(x instanceof WeakSet) &&
-  !(x instanceof Error) &&
-  !(x instanceof Number) &&
-  !(x instanceof Date) &&
-  !(x instanceof String) &&
-  !(x instanceof RegExp) &&
-  !(x instanceof ArrayBuffer)
-
-const canPolyfill = (x: unknown) => x instanceof Map || x instanceof Set
-
-const defaultHandlePromise = <P extends Promise<any>>(
-  promise: P & {
-    status?: 'pending' | 'fulfilled' | 'rejected'
-    value?: Awaited<P>
-    reason?: unknown
-  },
-) => {
-  switch (promise.status) {
-    case 'fulfilled':
-      return promise.value as Awaited<P>
-    case 'rejected':
-      throw promise.reason
-    default:
-      // eslint-disable-next-line @typescript-eslint/no-throw-literal
-      throw promise
-  }
-}
-
-// NOTE copy is required for proper function.
-const createBaseObject = (initialObject: object) => {
-  if (Array.isArray(initialObject)) {
-    return []
-  }
-
-  return Object.create(Object.getPrototypeOf(initialObject))
-}
-
-const snapCache = new WeakMap<object, [version: number, snap: unknown]>()
 
 const createSnapshot: CreateSnapshot = <T extends object>(
   target: T,
@@ -121,7 +82,7 @@ export function state<T extends object, R extends object = undefined>(
   initialObject: T = {} as T,
   parent?: object,
   root?: R,
-): RootState<T, R> {
+): T {
   let initialization = true
   if (!isObject(initialObject)) {
     log('Only objects can be made observable with state()', 'error')
@@ -135,7 +96,7 @@ export function state<T extends object, R extends object = undefined>(
 
   const plugins = initializePlugins(initialObject)
   derive(initialObject)
-  const found = proxyCache.get(initialObject) as RootState<T, R> | undefined
+  const found = proxyCache.get(initialObject) as T | undefined
   if (found) return found
   let version = versionHolder[0]
   const listeners = new Set<Listener>()
@@ -259,8 +220,8 @@ export function state<T extends object, R extends object = undefined>(
       const prevValue = Reflect.get(target, property, receiver) // Reflect skips other traps.
       if (
         hasPrevValue &&
-        (objectIs(prevValue, value) ||
-          (proxyCache.has(value) && objectIs(prevValue, proxyCache.get(value))))
+        (Object.is(prevValue, value) ||
+          (proxyCache.has(value) && Object.is(prevValue, proxyCache.get(value))))
       ) {
         return true
       }
@@ -290,7 +251,7 @@ export function state<T extends object, R extends object = undefined>(
           if (typeof after === 'function') {
             after(nextValue)
           }
-        } else if (!proxyStateMap.has(value) && canProxy(value)) {
+        } else if (!proxyStateMap.has(value) && canProxy(value, refSet)) {
           nextValue = state(value, receiver, root ?? receiver)
         } else if (canPolyfill(value)) {
           // TODO Necessary that Map or Set cannot be root?
