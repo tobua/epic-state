@@ -78,13 +78,13 @@ function myConfigurableLogPlugin(...configuration: string[]): Plugin {
   const isPropertyIgnored = () => properties.length !== 0 && !properties.includes(property)
 
   const actions = {
-    get: (property: string, value: any) =>
+    get: (property: string, parent: object, value: any) =>
       !isPropertyIgnored(property) && console.log(`GET: ${property} as ${value}`),
-    set: (property: string, value: any, previousValue: any) => {
+    set: (property: string, parent: object, value: any, previousValue: any) => {
       if (value === previousValue || isPropertyIgnored(property)) return
       console.log(`SET: ${property} as ${value} from ${previousValue}`)
     },
-    delete: (property: string) =>
+    delete: (property: string, parent: object) =>
       !isPropertyIgnored(property) && console.log(`DELETE: ${property}`),
   }
 

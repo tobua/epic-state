@@ -56,7 +56,7 @@ export const persistStorage: Plugin<[{ id: Identifier; prefix?: string; properti
   identifiers.add(identifier)
 
   const actions = {
-    set: (property: string, value: any, previousValue: any) => {
+    set: (property: string, parent: object, value: any, previousValue: any) => {
       if (value === previousValue || (properties.length !== 0 && !properties.includes(property)))
         return
       const currentValues = JSON.parse(window.localStorage.getItem(identifier))

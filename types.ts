@@ -103,11 +103,56 @@ export type RootState<T, R> =
       }
 
 export type PluginActions = {
-  get?: (property: string) => void
-  set?: (property: string, value: any, previousValue: any) => void
-  delete?: (property: string) => void
+  get?: (property: string, parent: object, value: any) => void
+  set?: (property: string, parent: object, value: any, previousValue: any) => void
+  delete?: (property: string, parent: object) => void
 }
 
 export type Plugin<T extends any[]> = (
   ...configuration: T
 ) => Plugin<['initialize']> | PluginActions
+
+export type ObservedProperties = TupleArrayMap<object, string, Function>
+
+export class TupleArrayMap<A, B, C> {
+  protected observedProperties: Map<A, Map<B, C[]>> = new Map()
+
+  has(firstKey: A, secondKey: B): boolean {
+    return (
+      (this.observedProperties.has(firstKey) &&
+        this.observedProperties.get(firstKey)?.has(secondKey)) ||
+      false
+    )
+  }
+
+  get(firstKey: A, secondKey: B): C[] | undefined {
+    return this.has(firstKey, secondKey)
+      ? this.observedProperties.get(firstKey)?.get(secondKey)
+      : undefined
+  }
+
+  add(firstKey: A, secondKey: B, value: C): void {
+    if (!this.observedProperties.has(firstKey)) {
+      this.observedProperties.set(firstKey, new Map<B, C[]>())
+    }
+
+    if (!this.observedProperties.get(firstKey)?.has(secondKey)) {
+      this.observedProperties.get(firstKey)?.set(secondKey, [])
+    }
+
+    this.observedProperties.get(firstKey)?.get(secondKey)?.push(value)
+  }
+
+  delete(firstKey: A, secondKey: B): void {
+    if (this.observedProperties.has(firstKey)) {
+      const properties = this.observedProperties.get(firstKey)
+      if (properties.has(secondKey)) {
+        properties.delete(secondKey)
+      }
+    }
+  }
+
+  clear() {
+    this.observedProperties.clear()
+  }
+}

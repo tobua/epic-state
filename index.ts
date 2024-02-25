@@ -220,7 +220,8 @@ export function state<T extends object, R extends object = undefined>(
       if (deleted) {
         notifyUpdate(['delete', [property], prevValue])
         // TODO no receiver, no parent access?
-        callPlugins({ type: 'delete', target, initial: true }, property)
+        // eslint-disable-next-line @typescript-eslint/no-use-before-define
+        callPlugins({ type: 'delete', target, initial: true }, property, proxyObject ?? root)
       }
       return deleted
     },
@@ -232,7 +233,15 @@ export function state<T extends object, R extends object = undefined>(
       const value = Reflect.get(target, property, receiver)
       if (!initialization && typeof value !== 'function') {
         notifyUpdate(['get', [property], value])
-        callPlugins({ type: 'get', target: receiver, initial: true }, property)
+        // Only call plugins for leaf access.
+        if (typeof value !== 'object') {
+          callPlugins(
+            { type: 'get', target: receiver, initial: true },
+            property,
+            receiver ?? root,
+            value,
+          )
+        }
         track(root ?? receiver, property)
       }
       return value
@@ -299,7 +308,13 @@ export function state<T extends object, R extends object = undefined>(
       Reflect.set(target, property, nextValue, receiver)
       if (!initialization) {
         notifyUpdate(['set', [property], value, prevValue])
-        callPlugins({ type: 'set', target: receiver, initial: true }, property, value, prevValue)
+        callPlugins(
+          { type: 'set', target: receiver, initial: true },
+          property,
+          receiver ?? root,
+          value,
+          prevValue,
+        )
         isTracked(root ?? receiver, property)
       }
       return true

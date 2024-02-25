@@ -1,4 +1,4 @@
-import { Plugin, PluginActions } from './types'
+import { Plugin, PluginActions, Property } from './types'
 
 const globalPlugins: PluginActions[] = []
 
@@ -24,7 +24,7 @@ type CallPluginOptions = {
 // NOTE accessing values in here can also lead to recursive calls.
 export function callPlugins(
   { type, target, initial = false }: CallPluginOptions,
-  ...values: any[]
+  ...values: [Property, object, ...any]
 ) {
   // Current plugin.
   if (target._plugin) {

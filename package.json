@@ -29,9 +29,9 @@
     "proxy-compare": "2.6.0"
   },
   "devDependencies": {
-    "@happy-dom/global-registrator": "^13.4.1",
+    "@happy-dom/global-registrator": "^13.5.0",
     "@testing-library/preact": "^3.2.3",
-    "@types/bun": "^1.0.6",
+    "@types/bun": "^1.0.7",
     "@types/jsdom": "^21.1.6",
     "padua": "^3.0.0",
     "preact": "^10.19.6"

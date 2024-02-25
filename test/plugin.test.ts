@@ -11,7 +11,7 @@ const createLogPlugin = (currentMock: Mock<any>) =>
           currentMock('get', property)
         }
       },
-      set: (property: string, value: any) => {
+      set: (property: string, parent: object, value: any) => {
         if (!properties || (properties ?? []).includes(property)) {
           currentMock('set', property, value)
         }
@@ -166,7 +166,7 @@ test('Plugins can be globally registered and will apply to any state.', () => {
     get: (property: string) => {
       logMock('get', property)
     },
-    set: (property: string, value: any) => {
+    set: (property: string, parent: object, value: any) => {
       logMock('set', property, value)
     },
   }
@@ -190,15 +190,13 @@ test('Plugins can be globally registered and will apply to any state.', () => {
   expect(logMock.mock.calls[1]).toEqual(['set', 'count', 2])
 
   expect(root.nested.count).toBe(2)
-
-  expect(logMock.mock.calls.length).toBe(4)
-  expect(logMock.mock.calls[2]).toEqual(['get', 'nested'])
-  expect(logMock.mock.calls[3]).toEqual(['get', 'count'])
+  expect(logMock.mock.calls.length).toBe(3)
+  expect(logMock.mock.calls[2]).toEqual(['get', 'count'])
 
   expect(secondRoot.count).toBe(3)
 
-  expect(logMock.mock.calls.length).toBe(5)
-  expect(logMock.mock.calls[0]).toEqual(['get', 'count'])
+  expect(logMock.mock.calls.length).toBe(4)
+  expect(logMock.mock.calls[3]).toEqual(['get', 'count'])
 })
 
 test('Plugins will be inherited by nested objects.', () => {
@@ -214,11 +212,11 @@ test('Plugins will be inherited by nested objects.', () => {
   root.count = 2
   root.nested.count = 4
 
-  expect(logMock.mock.calls.length).toBe(4)
+  expect(logMock.mock.calls.length).toBe(3)
   expect(logMock.mock.calls[1][0]).toBe('set')
   expect(logMock.mock.calls[1][1]).toBe('count')
   expect(logMock.mock.calls[1][2]).toBe(2)
-  expect(logMock.mock.calls[3][0]).toBe('set')
-  expect(logMock.mock.calls[3][1]).toBe('count')
-  expect(logMock.mock.calls[3][2]).toBe(4)
+  expect(logMock.mock.calls[2][0]).toBe('set')
+  expect(logMock.mock.calls[2][1]).toBe('count')
+  expect(logMock.mock.calls[2][2]).toBe(4)
 })

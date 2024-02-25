@@ -52,7 +52,7 @@ export const persistUrl: Plugin<string[]> = (...configuration) => {
   let properties: string[] = []
 
   const actions = {
-    set: (property: string, value: any, previousValue: any) => {
+    set: (property: string, parent: object, value: any, previousValue: any) => {
       if (value === previousValue || (properties.length !== 0 && !properties.includes(property)))
         return
       updateUrlParameter(property, value)

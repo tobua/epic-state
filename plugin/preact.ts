@@ -1,7 +1,7 @@
 /* eslint-disable no-bitwise */
 /* eslint-disable no-underscore-dangle */
 import { options, Component, type VNode as PreactVNode } from 'preact'
-import { Plugin } from '../types'
+import { type Plugin, TupleArrayMap } from '../types'
 import { log } from '../helper'
 
 // With preact you can set custom hooks for the render cycle: https://preactjs.com/guide/v10/options
@@ -89,20 +89,23 @@ export const connect: Plugin<string[]> = (initialize) => {
     log('connect plugin cannot be configured', 'warning')
   }
 
-  const observedProperties = new Map<string, Function[]>()
+  const observedProperties = new TupleArrayMap<object, string, Function>()
 
   return {
-    set: (property: string, value: any, previousValue: any) => {
+    set: (property: string, parent: object, value: any, previousValue: any) => {
       if (value === previousValue) return
 
-      const components = observedProperties.get(property)
-      components?.forEach((component) => component())
+      const components = observedProperties.get(parent, property)
 
-      if (observedProperties.has(property)) {
-        observedProperties.delete(property)
+      // Remove, as get will be tracked again during render.
+      if (observedProperties.has(parent, property)) {
+        observedProperties.delete(parent, property)
       }
+
+      // Trigger rerender on components.
+      components?.forEach((component) => component())
     },
-    get: (property: string) => {
+    get: (property: string, parent: object) => {
       if (!currentComponent) return // Accessed outside a component.
       if (!currentComponent._updater) {
         log('Missing _updater on component', 'warning')
@@ -110,11 +113,11 @@ export const connect: Plugin<string[]> = (initialize) => {
       }
 
       // Register rerender on current component.
-      if (!observedProperties.has(property)) {
+      if (!observedProperties.has(parent, property)) {
         // eslint-disable-next-line no-underscore-dangle
-        observedProperties.set(property, [currentComponent._updater])
+        observedProperties.add(parent, property, currentComponent._updater)
       } else {
-        const components = observedProperties.get(property)
+        const components = observedProperties.get(parent, property)
         // eslint-disable-next-line no-underscore-dangle
         components?.push(currentComponent._updater)
       }

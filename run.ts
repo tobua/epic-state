@@ -1,64 +1,61 @@
 import { plugin } from './plugin'
+import { TupleArrayMap, ObservedProperties } from './types'
 
-const runners: { observedProperties: Map<string, Function[]>; handler: Function }[] = []
+const runners: { observedProperties: ObservedProperties; handler: Function }[] = []
 let pluginRegistered: () => void | undefined
-let runningHandler: { observedProperties: Map<string, Function[]>; handler: Function } | undefined
+let runningHandler: { observedProperties: ObservedProperties; handler: Function } | undefined
 
-function runHandler(handler: Function, observedProperties: Map<string, Function[]>) {
+function runHandler(handler: Function, observedProperties: ObservedProperties) {
   observedProperties.clear() // Reset before run to only track currently accessed properties.
   runningHandler = { observedProperties, handler }
   handler()
   runningHandler = undefined
 }
 
-function runHandlersObservingProperty(property: string) {
+function runHandlersObservingProperty(property: string, parent: object) {
   runners.forEach((runner) => {
     const { observedProperties } = runner
-    if (!observedProperties.has(property)) return
-    const handlers = observedProperties.get(property)
+    if (!observedProperties.has(parent, property)) return
+    const handlers = observedProperties.get(parent, property)
     handlers.forEach((currentHandler) => {
       runHandler(currentHandler, observedProperties)
     })
   })
 }
 
-function observeProperty(property: string, handler: Function) {
-  const { observedProperties } = runningHandler
-  if (!observedProperties.has(property)) {
-    observedProperties.set(property, [handler])
-  } else {
-    observedProperties.get(property)?.push(handler)
-  }
+function observeProperty(property: string, parent: object) {
+  const { observedProperties, handler } = runningHandler
+  observedProperties.add(parent, property, handler)
 }
 
 export function run(handler: Function) {
   if (!pluginRegistered) {
     pluginRegistered = plugin({
-      set: (property: string, value: any, previousValue: any) => {
+      set: (property: string, parent: object, value: any, previousValue: any) => {
         if (value === previousValue) return
-        runHandlersObservingProperty(property)
+        runHandlersObservingProperty(property, parent)
         // TODO necessary to observe set actions in run()?
       },
-      get: (property: string) => {
+      get: (property: string, parent: object) => {
         if (!runningHandler) return // Not currently tracking.
-        observeProperty(property, handler)
+        observeProperty(property, parent)
       },
-      delete: (property: string) => {
-        runHandlersObservingProperty(property)
+      delete: (property: string, parent: object) => {
+        runHandlersObservingProperty(property, parent)
       },
     })
   }
 
-  const observedProperties = new Map<string, Function[]>()
+  const observedProperties = new TupleArrayMap<object, string, Function>()
   runHandler(handler, observedProperties)
   runners.push({ observedProperties, handler })
 
   return function unregister() {
     const remainingRunners = runners.filter((runner) => runner.handler !== handler)
     runners.splice(0, runners.length, ...remainingRunners)
-
     if (remainingRunners.length === 0 && pluginRegistered) {
       pluginRegistered() // Unregister plugin.
+      pluginRegistered = undefined
     }
   }
 }

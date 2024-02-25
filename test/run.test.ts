@@ -48,3 +48,85 @@ test('Object with values is converted to a proxy and state can be changed.', () 
 
   unregister()
 })
+
+test('Properties with the same name are tracked independently.', () => {
+  const root = state({
+    first: {
+      count: 1,
+    },
+    second: {
+      count: 2,
+    },
+    nested: {
+      third: {
+        count: 3,
+      },
+      fourth: {
+        count: 4,
+      },
+    },
+  })
+
+  const firstHandler = () => root.first.count * 2
+  const secondHandler = () => root.second.count * 2
+  const thirdHandler = () => root.nested.third.count * 2
+  const fourthHandler = () => root.nested.fourth.count * 2
+
+  const firstRunMock = mock(firstHandler)
+  const secondRunMock = mock(secondHandler)
+  const thirdRunMock = mock(thirdHandler)
+  const fourthRunMock = mock(fourthHandler)
+
+  const unregisterFirst = run(firstRunMock)
+  const unregisterSecond = run(secondRunMock)
+  const unregisterThird = run(thirdRunMock)
+  const unregisterFourth = run(fourthRunMock)
+
+  expect(firstRunMock).toHaveBeenCalledTimes(1)
+  expect(secondRunMock).toHaveBeenCalledTimes(1)
+  expect(thirdRunMock).toHaveBeenCalledTimes(1)
+  expect(fourthRunMock).toHaveBeenCalledTimes(1)
+
+  // Reads should have no effect.
+  expect(root.first.count).toBe(1)
+  expect(root.second.count).toBe(2)
+  expect(root.nested.third.count).toBe(3)
+
+  expect(firstRunMock).toHaveBeenCalledTimes(1)
+  expect(secondRunMock).toHaveBeenCalledTimes(1)
+  expect(thirdRunMock).toHaveBeenCalledTimes(1)
+  expect(fourthRunMock).toHaveBeenCalledTimes(1)
+
+  root.first.count = 5
+
+  expect(firstRunMock).toHaveBeenCalledTimes(2)
+  expect(secondRunMock).toHaveBeenCalledTimes(1)
+  expect(thirdRunMock).toHaveBeenCalledTimes(1)
+  expect(fourthRunMock).toHaveBeenCalledTimes(1)
+
+  root.second.count = 6
+
+  expect(firstRunMock).toHaveBeenCalledTimes(2)
+  expect(secondRunMock).toHaveBeenCalledTimes(2)
+  expect(thirdRunMock).toHaveBeenCalledTimes(1)
+  expect(fourthRunMock).toHaveBeenCalledTimes(1)
+
+  root.nested.third.count = 7
+
+  expect(firstRunMock).toHaveBeenCalledTimes(2)
+  expect(secondRunMock).toHaveBeenCalledTimes(2)
+  expect(thirdRunMock).toHaveBeenCalledTimes(2)
+  expect(fourthRunMock).toHaveBeenCalledTimes(1)
+
+  root.nested.fourth.count = 8
+
+  expect(firstRunMock).toHaveBeenCalledTimes(2)
+  expect(secondRunMock).toHaveBeenCalledTimes(2)
+  expect(thirdRunMock).toHaveBeenCalledTimes(2)
+  expect(fourthRunMock).toHaveBeenCalledTimes(2)
+
+  unregisterFirst()
+  unregisterSecond()
+  unregisterThird()
+  unregisterFourth()
+})
