@@ -233,15 +233,19 @@ export function state<T extends object, R extends object = undefined>(
       let nextValue = value
       if (value instanceof Promise) {
         value
-          .then((v) => {
+          .then((result) => {
+            // @ts-ignore NOTE custom but common pattern
             value.status = 'fulfilled'
-            value.value = v
-            notifyUpdate(['resolve', [property], v])
+            // @ts-ignore
+            value.value = result
+            notifyUpdate(['resolve', [property], result])
           })
-          .catch((e) => {
+          .catch((error) => {
+            // @ts-ignore
             value.status = 'rejected'
-            value.reason = e
-            notifyUpdate(['reject', [property], e])
+            // @ts-ignore
+            value.reason = error
+            notifyUpdate(['reject', [property], error])
           })
       } else {
         if (initialization && typeof value === 'function' && value.requiresInitialization) {

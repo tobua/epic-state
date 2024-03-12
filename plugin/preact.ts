@@ -71,17 +71,24 @@ hook(OptionsTypes.RENDER, (old, vnode) => {
   }
 
   currentComponent = component
-  old(vnode)
+  if (old) {
+    // NOTE missing in original implementation, sometimes causes issues, probably due to order of registration.
+    old(vnode)
+  }
 })
 
 hook(OptionsTypes.CATCH_ERROR, (old, error, vnode, oldVNode) => {
   currentComponent = undefined
-  old(error, vnode, oldVNode)
+  if (old) {
+    old(error, vnode, oldVNode)
+  }
 })
 
 hook(OptionsTypes.DIFFED, (old, vnode) => {
   currentComponent = undefined
-  old(vnode)
+  if (old) {
+    old(vnode)
+  }
 })
 
 export const connect: Plugin<string[]> = (initialize) => {

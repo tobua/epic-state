@@ -14,11 +14,16 @@ beforeEach(() => {
   window.location.href = 'http://localhost:3000'
 })
 
+const searchParam = (name: string) => {
+  const searchParams = new URLSearchParams(location.search)
+  return searchParams.get(name)
+}
+
 test('Initial state is added to the URL.', () => {
   const root = state({ page: 1, plugin: persistUrl })
 
   expect(root.page).toBe(1)
-  expect(location.searchParams.get('page')).toBe('1')
+  expect(searchParam('page')).toBe('1')
   expect(location.pathname).toBe('/')
 })
 
@@ -27,7 +32,7 @@ test('Existing pathname remains.', () => {
   const root = state({ page: 1, plugin: persistUrl })
 
   expect(root.page).toBe(1)
-  expect(location.searchParams.get('page')).toBe('1')
+  expect(searchParam('page')).toBe('1')
   expect(location.pathname).toBe('/nested/page')
 })
 
@@ -41,19 +46,19 @@ test('Initial state is overridden with state from URL if property is found on th
   // @ts-expect-error
   expect(root.missing).toBe(undefined)
 
-  expect(location.searchParams.get('page')).toBe('0')
-  expect(location.searchParams.get('count')).toBe('10')
-  expect(location.searchParams.get('missing')).toBe('gone') // Existing URL parameters remain untouched.
+  expect(searchParam('page')).toBe('0')
+  expect(searchParam('count')).toBe('10')
+  expect(searchParam('missing')).toBe('gone') // Existing URL parameters remain untouched.
 })
 
 test('State updates are reflected in the URL.', () => {
   const root = state({ page: 1, plugin: persistUrl })
 
-  expect(location.searchParams.get('page')).toBe('1')
+  expect(searchParam('page')).toBe('1')
 
   root.page = 2
 
-  expect(location.searchParams.get('page')).toBe('2')
+  expect(searchParam('page')).toBe('2')
 })
 
 test('Only top-level values are persisted.', () => {
@@ -67,11 +72,11 @@ test('Only top-level values are persisted.', () => {
   })
 
   expect(root.page).toBe(1)
-  expect(location.searchParams.get('page')).toBe('1')
+  expect(searchParam('page')).toBe('1')
   expect(location.pathname).toBe('/')
 
   // Includes only page and not nested.
-  expect(location.searchParams.toString()).toBe('page=1&count=2&active=true')
+  expect(location.search).toBe('?page=1&count=2&active=true')
 })
 
 test('Can configure which properties should be persisted.', () => {
@@ -81,14 +86,14 @@ test('Can configure which properties should be persisted.', () => {
   expect(root.first).toBe(1)
   expect(root.second).toBe(4)
 
-  expect(location.searchParams.get('first')).toBe('3') // Ignored parameter remains untouched.
-  expect(location.searchParams.get('second')).toBe('4')
+  expect(searchParam('first')).toBe('3') // Ignored parameter remains untouched.
+  expect(searchParam('second')).toBe('4')
 
   root.first = 5
   root.second = 6
 
-  expect(location.searchParams.get('first')).toBe('3')
-  expect(location.searchParams.get('second')).toBe('6')
+  expect(searchParam('first')).toBe('3')
+  expect(searchParam('second')).toBe('6')
 })
 
 test('Can configure multiple properties to be persisted.', () => {
@@ -106,18 +111,18 @@ test('Can configure multiple properties to be persisted.', () => {
   expect(root.third).toBe(3)
   expect(root.fourth).toBe(6)
 
-  expect(location.searchParams.get('first')).toBe('3') // Ignored parameter remains untouched.
-  expect(location.searchParams.get('second')).toBe('4')
-  expect(location.searchParams.get('third')).toBe('5')
-  expect(location.searchParams.get('fourth')).toBe('6')
+  expect(searchParam('first')).toBe('3') // Ignored parameter remains untouched.
+  expect(searchParam('second')).toBe('4')
+  expect(searchParam('third')).toBe('5')
+  expect(searchParam('fourth')).toBe('6')
 
   root.first = 9
   root.second = 9
   root.third = 9
   root.fourth = 9
 
-  expect(location.searchParams.get('first')).toBe('3')
-  expect(location.searchParams.get('second')).toBe('9')
-  expect(location.searchParams.get('third')).toBe('5')
-  expect(location.searchParams.get('fourth')).toBe('9')
+  expect(searchParam('first')).toBe('3')
+  expect(searchParam('second')).toBe('9')
+  expect(searchParam('third')).toBe('5')
+  expect(searchParam('fourth')).toBe('9')
 })
