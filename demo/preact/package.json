@@ -1,0 +1,18 @@
+{
+  "papua": {
+    "title": "epic-state Preact Demo",
+    "icon": "../../logo.png"
+  },
+  "dependencies": {
+    "@types/react": "^18.3.3",
+    "exmpl": "^3.1.0",
+    "papua": "^6.0.2",
+    "preact": "^10.22.0"
+  },
+  "localDependencies": {
+    "epic-state": "../.."
+  },
+  "trustedDependencies": [
+    "papua"
+  ]
+}

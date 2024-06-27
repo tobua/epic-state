@@ -40,7 +40,7 @@ function initializeUrl(state: object, properties: string[]) {
       key !== 'plugin' &&
       (properties.length === 0 || properties.includes(key))
     ) {
-      queryParams.set(key, value)
+      queryParams.set(key, value as string)
     }
   })
 

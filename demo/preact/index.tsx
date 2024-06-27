@@ -25,6 +25,7 @@ const Counter = () => {
     </div>
   )
 }
+
 const SecondCounter = () => {
   return (
     <div>

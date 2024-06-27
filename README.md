@@ -8,7 +8,7 @@ Reactive state management for frontend libraries.
 - Local and global plugins
 - Navigatable state-tree structure
 - Built-in TypeScript types
-- Automatic Preact and epic-jsx integration without component wrapper
+- Automatic [`epic-jsx`](https://github.com/tobua/epic-jsx) and Preact integration without component wrapper
 - Map, Set support
 
 ## Usage
@@ -28,6 +28,30 @@ const root = state({
     return root.count * 2
   },
 })
+```
+
+To connect the state to automatically rerender [`epic-jsx`](https://github.com/tobua/epic-jsx) components accessing the state add the following.
+
+```jsx
+import { state, plugin } from 'epic-state'
+import { connect } from 'epic-state/connect'
+import { render } from 'epic-jsx'
+
+plugin(connect) // Register global connect plugin for epic-jsx.
+
+const root = state({
+  count: 1,
+})
+
+render(
+  <button
+    onClick={() => {
+      root.count += 1
+    }}
+  >
+    Increment {root.count}
+  </button>,
+)
 ```
 
 ## Observer
@@ -55,7 +79,8 @@ Plugins - much like an observer - receive updates to the state but plugins can a
 
 ```ts
 import { state, plugin } from 'epic-state'
-import { connect } from 'epic-state/preact'
+import { connect } from 'epic-state/connect' // For epic-jsx
+import { connect } from 'epic-state/preact' // For Preact
 import { persistUrl } from 'epic-state/persist'
 
 // Register plugin globally to any state updates.

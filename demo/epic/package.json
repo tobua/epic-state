@@ -1,0 +1,18 @@
+{
+  "papua": {
+    "title": "epic-state JSX Demo",
+    "icon": "../../logo.png"
+  },
+  "dependencies": {
+    "@types/react": "^18.3.3",
+    "epic-jsx": "^0.7.1",
+    "exmpl": "^3.1.0",
+    "papua": "^6.0.2"
+  },
+  "localDependencies": {
+    "epic-state": "../.."
+  },
+  "trustedDependencies": [
+    "papua"
+  ]
+}
