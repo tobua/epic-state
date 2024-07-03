@@ -1,5 +1,5 @@
-import { expect, test, mock } from 'bun:test'
-import { state, observe, snapshot, getVersion, remove } from '../index'
+import { expect, mock, test } from 'bun:test'
+import { getVersion, observe, remove, snapshot, state } from '../index'
 import { process } from './helper'
 
 test('Object with values is converted to a proxy and state can be changed.', () => {
@@ -99,10 +99,7 @@ test('Can unsubscribe from an observation.', async () => {
 
   expect(subscribeMock).not.toHaveBeenCalled()
 
-  const unsubscribe = observe(
-    (values) => subscribeMock(values.filter((value) => value[0] !== 'get')),
-    root,
-  )
+  const unsubscribe = observe((values) => subscribeMock(values.filter((value) => value[0] !== 'get')), root)
 
   root.count += 1
 
@@ -210,12 +207,7 @@ test('Can subscribe to deeply nested state changes.', async () => {
   await process()
 
   expect(subscribeMock.mock.calls[0][0].length).toBe(1)
-  expect(subscribeMock.mock.calls[0][0][0]).toEqual([
-    'set',
-    ['values', '0', 'nested', 'value'],
-    3,
-    2,
-  ])
+  expect(subscribeMock.mock.calls[0][0][0]).toEqual(['set', ['values', '0', 'nested', 'value'], 3, 2])
 })
 
 test('Destructured objects are still tracked.', async () => {
@@ -280,9 +272,7 @@ test('Arrays, Maps and Sets are also tracked.', async () => {
 // TODO doesn't work yet.
 test.skip('Map/Set polyfill works at the top-level.', async () => {
   const subscribeMock = mock()
-  const root = state(
-    new Set([{ name: 'apple' }, { name: 'banana' }, { name: 'cherry' }, { name: 'apple' }]),
-  )
+  const root = state(new Set([{ name: 'apple' }, { name: 'banana' }, { name: 'cherry' }, { name: 'apple' }]))
 
   observe((values) => subscribeMock(values.filter((value) => value[0] !== 'get')), root)
 

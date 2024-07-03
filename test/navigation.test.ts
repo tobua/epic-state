@@ -1,4 +1,4 @@
-import { expect, test, mock } from 'bun:test'
+import { expect, mock, test } from 'bun:test'
 import { type RootState, observe, state } from '../index'
 import { process } from './helper'
 

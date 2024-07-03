@@ -1,5 +1,5 @@
 import type { state as State } from '../index'
-import { RootState } from '../types'
+import type { RootState } from '../types'
 
 // Augments an array with elements connected to parent.
 export function list<T extends object, K>(template: (value: K) => T, initialValues: K[] = []) {
@@ -8,10 +8,7 @@ export function list<T extends object, K>(template: (value: K) => T, initialValu
   type InstancePartial<A> = A & Partial<ExtendedInstance>
   type Instance<A> = RootState<A & ExtendedInstance, any>
 
-  function extendInstance(
-    instance: InstancePartial<T>,
-    data: InstancePartial<T>[] & Partial<ExtendedList<K>>,
-  ) {
+  function extendInstance(instance: InstancePartial<T>, data: InstancePartial<T>[] & Partial<ExtendedList<K>>) {
     instance.remove = function remove() {
       const indexToRemove = data.indexOf(instance)
       if (indexToRemove !== -1) {

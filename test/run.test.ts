@@ -1,5 +1,5 @@
-import { expect, test, mock } from 'bun:test'
-import { state, run } from '../index'
+import { expect, mock, test } from 'bun:test'
+import { run, state } from '../index'
 
 test('Object with values is converted to a proxy and state can be changed.', () => {
   const root = state({

@@ -1,5 +1,5 @@
 import { plugin } from './plugin'
-import { TupleArrayMap, ObservedProperties } from './types'
+import { type ObservedProperties, TupleArrayMap } from './types'
 
 const runners: { observedProperties: ObservedProperties; handler: Function }[] = []
 let pluginRegistered: () => void | undefined
@@ -13,14 +13,16 @@ function runHandler(handler: Function, observedProperties: ObservedProperties) {
 }
 
 function runHandlersObservingProperty(property: string, parent: object) {
-  runners.forEach((runner) => {
+  for (const runner of runners) {
     const { observedProperties } = runner
-    if (!observedProperties.has(parent, property)) return
+    if (!observedProperties.has(parent, property)) continue
     const handlers = observedProperties.get(parent, property)
-    handlers.forEach((currentHandler) => {
-      runHandler(currentHandler, observedProperties)
-    })
-  })
+    if (handlers) {
+      for (const currentHandler of handlers) {
+        runHandler(currentHandler, observedProperties)
+      }
+    }
+  }
 }
 
 function observeProperty(property: string, parent: object) {

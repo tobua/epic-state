@@ -1,9 +1,7 @@
 /* eslint-disable react/react-in-jsx-scope */
 import '../setup-dom'
-// eslint-disable-next-line import/no-extraneous-dependencies
-import React from 'react'
 import { expect, test } from 'bun:test'
-import { render, act } from '@testing-library/preact'
+import { act, render } from '@testing-library/preact'
 import { state } from '../../index'
 import { connect } from '../../plugin/preact'
 

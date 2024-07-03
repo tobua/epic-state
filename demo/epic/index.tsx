@@ -1,6 +1,6 @@
-import { state, plugin } from 'epic-state'
-import { connect } from 'epic-state/connect'
 import { render } from 'epic-jsx'
+import { plugin, state } from 'epic-state'
+import { connect } from 'epic-state/connect'
 
 plugin(connect) // Register global connect plugin for epic-jsx.
 
@@ -11,6 +11,7 @@ const root = state({
 function App() {
   return (
     <button
+      type="button"
       style={{
         outline: 'none',
         border: 'none',

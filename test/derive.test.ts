@@ -1,4 +1,4 @@
-import { expect, test, mock } from 'bun:test'
+import { expect, mock, test } from 'bun:test'
 import { state } from '../index'
 
 test('Derived values will only be recalcuated when any of the attached values have changed.', async () => {

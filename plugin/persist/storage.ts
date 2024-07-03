@@ -1,5 +1,5 @@
-import { Plugin } from '../../types'
 import { log } from '../../helper'
+import type { Plugin } from '../../types'
 
 type Identifier = string | number
 
@@ -36,9 +36,7 @@ function initializeStorage(state: object, properties: string[], identifier: stri
 }
 
 // Persist state to localStorage or sessionStorage.
-export const persistStorage: Plugin<[{ id: Identifier; prefix?: string; properties: string[] }]> = (
-  ...configuration
-) => {
+export const persistStorage: Plugin<[{ id: Identifier; prefix?: string; properties: string[] }]> = (...configuration) => {
   const { id, prefix = 'epic-state-', properties = [] } = configuration[0]
   if (typeof id !== 'string' && typeof id !== 'number') {
     log('persistStorage: Missing identifier.', 'error')
@@ -47,18 +45,14 @@ export const persistStorage: Plugin<[{ id: Identifier; prefix?: string; properti
   const identifier = `${prefix}${id}`
 
   if (identifiers.has(identifier)) {
-    log(
-      `persistStorage: Persistence identifier "${identifier}" has already been used. Plugin will not work as expected!`,
-      'warning',
-    )
+    log(`persistStorage: Persistence identifier "${identifier}" has already been used. Plugin will not work as expected!`, 'warning')
   }
 
   identifiers.add(identifier)
 
   const actions = {
     set: (property: string, parent: object, value: any, previousValue: any) => {
-      if (value === previousValue || (properties.length !== 0 && !properties.includes(property)))
-        return
+      if (value === previousValue || (properties.length !== 0 && !properties.includes(property))) return
       const currentValues = JSON.parse(window.localStorage.getItem(identifier))
       currentValues[property] = value
       window.localStorage.setItem(identifier, JSON.stringify(currentValues))

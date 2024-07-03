@@ -71,11 +71,7 @@ export function objectMap<K, V, R extends object>(
     },
   }
 
-  const map: InternalObjectMap<K, V> = state(
-    polyfill,
-    parent,
-    root,
-  ) as unknown as InternalObjectMap<K, V>
+  const map: InternalObjectMap<K, V> = state(polyfill, parent, root) as unknown as InternalObjectMap<K, V>
 
   Object.defineProperties(map, {
     data: {
@@ -100,12 +96,7 @@ type InternalObjectSet<T> = Set<T> & {
   toJSON: object
 }
 
-export function objectSet<T, R extends object>(
-  state: typeof State,
-  initialValues?: Iterable<T> | null,
-  parent?: object,
-  root?: R,
-): Set<T> {
+export function objectSet<T, R extends object>(state: typeof State, initialValues?: Iterable<T> | null, parent?: object, root?: R): Set<T> {
   const polyfill = {
     data: Array.from(new Set(initialValues)),
     has(value) {

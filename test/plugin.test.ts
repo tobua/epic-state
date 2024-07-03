@@ -1,6 +1,6 @@
 import './setup-dom'
-import { Mock, expect, test, mock } from 'bun:test'
-import { state, type Plugin, plugin } from '../index'
+import { type Mock, expect, mock, test } from 'bun:test'
+import { type Plugin, plugin, state } from '../index'
 
 const createLogPlugin = (currentMock: Mock<any>) =>
   ((...configuration) => {

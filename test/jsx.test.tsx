@@ -1,10 +1,8 @@
 /* eslint-disable react/react-in-jsx-scope */
 import './setup-dom'
-// eslint-disable-next-line import/no-extraneous-dependencies
-import React from 'epic-jsx'
 import { expect, test } from 'bun:test'
 import { render, serializeElement } from 'epic-jsx/test'
-import { state, plugin } from '../index'
+import { plugin, state } from '../index'
 import { connect } from '../plugin/epic-jsx'
 
 test('Component will rerender on state updates.', () => {

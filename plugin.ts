@@ -1,4 +1,4 @@
-import { Plugin, PluginActions, Property } from './types'
+import type { Plugin, PluginActions, Property } from './types'
 
 const globalPlugins: PluginActions[] = []
 
@@ -22,17 +22,14 @@ type CallPluginOptions = {
 }
 
 // NOTE accessing values in here can also lead to recursive calls.
-export function callPlugins(
-  { type, target, initial = false }: CallPluginOptions,
-  ...values: [Property, object, ...any]
-) {
+export function callPlugins({ type, target, initial = false }: CallPluginOptions, ...values: [Property, object, ...any]) {
   // Current plugin.
   if (target._plugin) {
-    target._plugin.forEach((item) => {
+    for (const item of target._plugin) {
       if (item[type]) {
-        item[type].call(this, ...values)
+        item[type]?.call(item, ...values)
       }
-    })
+    }
   }
 
   // TODO make plugin inheritance configurable.
@@ -44,11 +41,11 @@ export function callPlugins(
   if (!initial) return
 
   // Global plugins.
-  globalPlugins.forEach((item) => {
+  for (const item of globalPlugins) {
     if (item[type]) {
-      item[type].call(this, ...values)
+      item[type]?.call(item, ...values)
     }
-  })
+  }
 }
 
 export function plugin(item: PluginActions) {

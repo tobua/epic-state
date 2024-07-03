@@ -41,11 +41,7 @@ export type Snapshot<T> = T extends SnapshotIgnore
 
 export type HandlePromise = <P extends Promise<any>>(promise: P) => Awaited<P>
 
-export type CreateSnapshot = <T extends object>(
-  target: T,
-  version: number,
-  handlePromise?: HandlePromise,
-) => T
+export type CreateSnapshot = <T extends object>(target: T, version: number, handlePromise?: HandlePromise) => T
 
 export type RemoveListener = () => void
 export type AddListener = (listener: Listener) => RemoveListener
@@ -89,18 +85,15 @@ type ChildState<E, P, R> = E extends Function
           : E extends Map<any, any>
             ? MapWithParent<MapElementType<E>[0], MapElementType<E>[1], P, R>
             : {
-                [F in keyof Omit<E, 'plugin'>]: E[F] extends object
-                  ? ChildState<E[F], ChildState<E, P, R>, R>
-                  : E[F]
+                [F in keyof Omit<E, 'plugin'>]: E[F] extends object ? ChildState<E[F], ChildState<E, P, R>, R> : E[F]
               })
     : E
 
-export type RootState<T, R> =
-  T extends Set<any>
-    ? Set<SetElementType<T>>
-    : {
-        [K in keyof Omit<T, 'plugin'>]: ChildState<T[K], T, R extends unknown ? T : R>
-      }
+export type RootState<T, R> = T extends Set<any>
+  ? Set<SetElementType<T>>
+  : {
+      [K in keyof Omit<T, 'plugin'>]: ChildState<T[K], T, R extends unknown ? T : R>
+    }
 
 export type PluginActions = {
   get?: (property: string, parent: object, value: any) => void
@@ -108,9 +101,7 @@ export type PluginActions = {
   delete?: (property: string, parent: object) => void
 }
 
-export type Plugin<T extends any[]> = (
-  ...configuration: T
-) => Plugin<['initialize']> | PluginActions
+export type Plugin<T extends any[]> = (...configuration: T) => Plugin<['initialize']> | PluginActions
 
 export type ObservedProperties = TupleArrayMap<object, string, Function>
 
@@ -118,17 +109,11 @@ export class TupleArrayMap<A, B, C> {
   protected observedProperties: Map<A, Map<B, C[]>> = new Map()
 
   has(firstKey: A, secondKey: B): boolean {
-    return (
-      (this.observedProperties.has(firstKey) &&
-        this.observedProperties.get(firstKey)?.has(secondKey)) ||
-      false
-    )
+    return (this.observedProperties.has(firstKey) && this.observedProperties.get(firstKey)?.has(secondKey)) || false
   }
 
   get(firstKey: A, secondKey: B): C[] | undefined {
-    return this.has(firstKey, secondKey)
-      ? this.observedProperties.get(firstKey)?.get(secondKey)
-      : undefined
+    return this.has(firstKey, secondKey) ? this.observedProperties.get(firstKey)?.get(secondKey) : undefined
   }
 
   add(firstKey: A, secondKey: B, value: C): void {

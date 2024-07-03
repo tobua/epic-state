@@ -1,9 +1,8 @@
-import { Plugin } from '../../types'
 import { log } from '../../helper'
+import type { Plugin } from '../../types'
 
 // Nested object values are not persisted.
-const isTopLevelValue = (value: any) =>
-  typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
+const isTopLevelValue = (value: any) => typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
 
 function replaceUrl(queryParams: URLSearchParams) {
   const newUrl = `${window.location.origin}${window.location.pathname}?${queryParams.toString()}`
@@ -23,23 +22,14 @@ function initializeUrl(state: object, properties: string[]) {
 
   // Override state with initial URL parameters.
   Array.from(queryParams.entries()).forEach(([key, value]) => {
-    if (
-      Object.hasOwn(state, key) &&
-      key !== 'plugin' &&
-      (properties.length === 0 || properties.includes(key))
-    ) {
+    if (Object.hasOwn(state, key) && key !== 'plugin' && (properties.length === 0 || properties.includes(key))) {
       state[key] = typeof state[key] === 'number' ? Number(value) : value
     }
   })
 
   // Override URL parameters with initial state.
   Object.entries(state).forEach(([key, value]) => {
-    if (
-      Object.hasOwn(state, key) &&
-      isTopLevelValue(value) &&
-      key !== 'plugin' &&
-      (properties.length === 0 || properties.includes(key))
-    ) {
+    if (Object.hasOwn(state, key) && isTopLevelValue(value) && key !== 'plugin' && (properties.length === 0 || properties.includes(key))) {
       queryParams.set(key, value as string)
     }
   })
@@ -53,8 +43,7 @@ export const persistUrl: Plugin<string[]> = (...configuration) => {
 
   const actions = {
     set: (property: string, parent: object, value: any, previousValue: any) => {
-      if (value === previousValue || (properties.length !== 0 && !properties.includes(property)))
-        return
+      if (value === previousValue || (properties.length !== 0 && !properties.includes(property))) return
       updateUrlParameter(property, value)
     },
   }

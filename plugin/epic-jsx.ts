@@ -1,6 +1,6 @@
 import { Renderer, getRoots } from 'epic-jsx'
-import { TupleArrayMap, PluginActions } from '../types'
 import { log } from '../helper'
+import { type PluginActions, TupleArrayMap } from '../types'
 
 const observedProperties = new TupleArrayMap<object, string, Function>()
 
@@ -30,13 +30,13 @@ export const connect: PluginActions = {
     }
 
     // Register rerender on current component.
-    if (!observedProperties.has(parent, property)) {
-      // eslint-disable-next-line no-underscore-dangle
-      observedProperties.add(parent, property, component.rerender)
-    } else {
+    if (observedProperties.has(parent, property)) {
       const components = observedProperties.get(parent, property)
       // eslint-disable-next-line no-underscore-dangle
       components?.push(component.rerender)
+    } else {
+      // eslint-disable-next-line no-underscore-dangle
+      observedProperties.add(parent, property, component.rerender)
     }
   },
 }

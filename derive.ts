@@ -4,9 +4,9 @@ import type { Property } from './types'
 const cache = new Map<Function, any>()
 
 enum DependenciesState {
-  new, // Dependencies have not yet been tracked or need to be updated.
-  clean, // No dependencies have been changed, can use cached result.
-  dirty, // One or more dependencies have changed, result needs to be recalculated.
+  new = 0, // Dependencies have not yet been tracked or need to be updated.
+  clean = 1, // No dependencies have been changed, can use cached result.
+  dirty = 2, // One or more dependencies have changed, result needs to be recalculated.
 }
 
 type Derived = Function & {
@@ -30,11 +30,11 @@ export const track = <U extends object>(parent: U, property: Property) => {
 
   const properties = dependencies.get(parent)
 
-  if (!properties.has(property)) {
-    properties.set(property, new Set([tracking]))
-  } else {
+  if (properties.has(property)) {
     const derivations = properties.get(property)
     derivations.add(tracking)
+  } else {
+    properties.set(property, new Set([tracking]))
   }
 }
 

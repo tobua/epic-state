@@ -17,8 +17,7 @@ export const listGetters = (input: object) => {
   return getters
 }
 
-export const newProxy = <T extends object>(target: T, handler: ProxyHandler<T>): T =>
-  new Proxy(target, handler)
+export const newProxy = <T extends object>(target: T, handler: ProxyHandler<T>): T => new Proxy(target, handler)
 
 export const canProxy = (x: unknown, refSet: WeakSet<WeakKey>) =>
   isObject(x) &&

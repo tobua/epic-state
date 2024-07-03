@@ -1,5 +1,5 @@
-import { expect, test, mock } from 'bun:test'
-import { state, observe } from '../index'
+import { expect, mock, test } from 'bun:test'
+import { observe, state } from '../index'
 import { process } from './helper'
 
 test('Can observe changes to any state object.', async () => {

@@ -1,5 +1,10 @@
 import { getUntracked, markToTrack } from 'proxy-compare'
-import {
+import { list } from './data/list'
+import { objectMap, objectSet } from './data/polyfill'
+import { derive, isTracked, track } from './derive'
+import { canPolyfill, canProxy, createBaseObject, defaultHandlePromise, isObject, log, newProxy, snapCache } from './helper'
+import { callPlugins, initializePlugins, plugin } from './plugin'
+import type {
   AsRef,
   CreateSnapshot,
   HandlePromise,
@@ -11,23 +16,10 @@ import {
   RemoveListener,
   Snapshot,
 } from './types'
-import {
-  isObject,
-  log,
-  newProxy,
-  canProxy,
-  canPolyfill,
-  defaultHandlePromise,
-  createBaseObject,
-  snapCache,
-} from './helper'
-import { objectMap, objectSet } from './data/polyfill'
-import { list } from './data/list'
-import { initializePlugins, callPlugins, plugin } from './plugin'
-import { derive, track, isTracked } from './derive'
 
 export type { Plugin, RootState } from './types'
 export { plugin, list }
+// biome-ignore lint/performance/noBarrelFile: Regular export...
 export { run } from './run'
 
 // Shared State, Map with links to all states created.
@@ -46,7 +38,7 @@ const createSnapshot: CreateSnapshot = <T extends object>(
   const snap: any = Array.isArray(target) ? [] : Object.create(Object.getPrototypeOf(target))
   markToTrack(snap, true) // mark to track
   snapCache.set(target, [version, snap])
-  Reflect.ownKeys(target).forEach((key) => {
+  for (const key of Reflect.ownKeys(target)) {
     if (Object.getOwnPropertyDescriptor(snap, key)) {
       // Only the known case is Array.length so far.
       return
@@ -69,7 +61,7 @@ const createSnapshot: CreateSnapshot = <T extends object>(
       desc.value = createSnapshot(proxyTarget, ensureVersion(), handlePromise) as Snapshot<T>
     }
     Object.defineProperty(snap, key, desc)
-  })
+  }
   return Object.preventExtensions(snap)
 }
 
@@ -78,11 +70,7 @@ const proxyCache = new WeakMap<object, ProxyObject>()
 const versionHolder = [1, 1] as [number, number]
 
 // proxy function renamed to state (proxy as hidden implementation detail).
-export function state<T extends object, R extends object = undefined>(
-  initialObject: T = {} as T,
-  parent?: object,
-  root?: R,
-): T {
+export function state<T extends object, R extends object = undefined>(initialObject: T = {} as T, parent?: object, root?: R): T {
   let initialization = true
   if (!isObject(initialObject)) {
     log('Only objects can be made observable with state()', 'error')
@@ -103,6 +91,7 @@ export function state<T extends object, R extends object = undefined>(
   const notifyUpdate = (operation: Operation, nextVersion = ++versionHolder[0]) => {
     if (version !== nextVersion) {
       version = nextVersion
+      // biome-ignore lint/complexity/noForEach: Simple one-liner here.
       listeners.forEach((listener) => listener(operation, nextVersion))
     }
   }
@@ -120,12 +109,12 @@ export function state<T extends object, R extends object = undefined>(
   const ensureVersion = (nextCheckVersion = ++versionHolder[1]) => {
     if (checkVersion !== nextCheckVersion && !listeners.size) {
       checkVersion = nextCheckVersion
-      propProxyStates.forEach(([propProxyState]) => {
+      for (const [propProxyState] of propProxyStates) {
         const propVersion = propProxyState[1](nextCheckVersion)
         if (propVersion > version) {
           version = propVersion
         }
-      })
+      }
     }
     return version
   }
@@ -196,38 +185,25 @@ export function state<T extends object, R extends object = undefined>(
         notifyUpdate(['get', [property], value])
         // Only call plugins for leaf access.
         if (typeof value !== 'object') {
-          callPlugins(
-            { type: 'get', target: receiver, initial: true },
-            property,
-            receiver ?? root,
-            value,
-          )
+          callPlugins({ type: 'get', target: receiver, initial: true }, property, receiver ?? root, value)
         }
         track(root ?? receiver, property)
       }
       return value
     },
     set(target, property, value, receiver: object) {
-      if (
-        property === 'parent' ||
-        property === 'root' ||
-        (!initialization && property === 'plugin')
-      ) {
+      if (property === 'parent' || property === 'root' || (!initialization && property === 'plugin')) {
         log(`"${property}" is reserved an cannot be changed`, 'warning')
         return false
       }
       const hasPrevValue = Reflect.has(target, property)
       const prevValue = Reflect.get(target, property, receiver) // Reflect skips other traps.
-      if (
-        hasPrevValue &&
-        (Object.is(prevValue, value) ||
-          (proxyCache.has(value) && Object.is(prevValue, proxyCache.get(value))))
-      ) {
+      if (hasPrevValue && (Object.is(prevValue, value) || (proxyCache.has(value) && Object.is(prevValue, proxyCache.get(value))))) {
         return true
       }
       removePropListener(property)
       if (isObject(value)) {
-        // eslint-disable-next-line no-param-reassign
+        // biome-ignore lint/style/noParameterAssign: Easier solution.
         value = getUntracked(value) || value
       }
       let nextValue = value
@@ -273,13 +249,7 @@ export function state<T extends object, R extends object = undefined>(
       Reflect.set(target, property, nextValue, receiver)
       if (!initialization) {
         notifyUpdate(['set', [property], value, prevValue])
-        callPlugins(
-          { type: 'set', target: receiver, initial: true },
-          property,
-          receiver ?? root,
-          value,
-          prevValue,
-        )
+        callPlugins({ type: 'set', target: receiver, initial: true }, property, receiver ?? root, value, prevValue)
         isTracked(root ?? receiver, property)
       }
       return true
@@ -289,7 +259,7 @@ export function state<T extends object, R extends object = undefined>(
   proxyCache.set(initialObject, proxyObject)
   const proxyState: ProxyState = [baseObject, ensureVersion, createSnapshot, addListener]
   proxyStateMap.set(proxyObject, proxyState)
-  Reflect.ownKeys(initialObject).forEach((key) => {
+  for (const key of Reflect.ownKeys(initialObject)) {
     const desc = Object.getOwnPropertyDescriptor(initialObject, key) as PropertyDescriptor
     if ('value' in desc) {
       proxyObject[key as keyof T] = initialObject[key as keyof T]
@@ -300,16 +270,12 @@ export function state<T extends object, R extends object = undefined>(
     }
     // This will recursively call the setter trap for any nested properties on the initialObject.
     Object.defineProperty(baseObject, key, desc)
-  })
+  }
   initialization = false
   return proxyObject
 }
 
-export function observe<T extends object>(
-  callback: (operations: Operation[]) => void,
-  proxyObject?: T,
-  notifyInSync?: boolean,
-) {
+export function observe<T extends object>(callback: (operations: Operation[]) => void, proxyObject?: T, notifyInSync?: boolean) {
   const proxyState = proxyStateMap.get(proxyObject as object)
   if (process.env.NODE_ENV !== 'production' && proxyObject && !proxyState) {
     log('proxyObject passed to observe() not registered', 'warning')
@@ -317,13 +283,14 @@ export function observe<T extends object>(
   }
   // Observe all registered states recursively.
   if (!proxyObject) {
-    const removeListeners = []
-    Array.from(proxyStateMap.keys()).forEach((currentProxyObject) => {
-      if (currentProxyObject.root) return
+    const removeListeners: (() => void)[] = []
+    for (const currentProxyObject of proxyStateMap.keys()) {
+      if (currentProxyObject.root) continue
       const removeListener = observe(callback, currentProxyObject, notifyInSync)
       removeListeners.push(removeListener)
-    })
+    }
     return () => {
+      // biome-ignore lint/complexity/noForEach: Simple one liner here.
       removeListeners.forEach((listener) => listener())
     }
   }
@@ -354,10 +321,7 @@ export function observe<T extends object>(
   }
 }
 
-export function snapshot<T extends object>(
-  proxyObject: T,
-  handlePromise?: HandlePromise,
-): Snapshot<T> {
+export function snapshot<T extends object>(proxyObject: T, handlePromise?: HandlePromise): Snapshot<T> {
   const proxyState = proxyStateMap.get(proxyObject as object)
   if (process.env.NODE_ENV !== 'production' && !proxyState) {
     console.warn('Please use proxy object')

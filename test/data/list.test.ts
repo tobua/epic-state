@@ -1,5 +1,5 @@
-import { expect, test, mock } from 'bun:test'
-import { state, observe, list } from '../../index'
+import { expect, mock, test } from 'bun:test'
+import { list, observe, state } from '../../index'
 import { process } from '../helper'
 
 const counter = (initialCount: number) => ({
