@@ -1,6 +1,6 @@
 import type { Plugin, PluginActions, Property } from './types'
 
-const globalPlugins: PluginActions[] = []
+const globalPlugins: (PluginActions | Plugin<['initialize']>)[] = []
 
 export function initializePlugins(state: object & { plugin?: Plugin<any> | Plugin<any>[] }) {
   if (!state.plugin) {
@@ -48,11 +48,17 @@ export function callPlugins({ type, target, initial = false }: CallPluginOptions
   }
 }
 
-export function plugin(item: PluginActions) {
-  globalPlugins.push(item)
+// biome-ignore lint/suspicious/noExplicitAny: Used to allow for generic plugin.
+export function plugin(plugin: Plugin<any>) {
+  const initializedPlugin = typeof plugin === 'function' ? plugin('initialize') : plugin
+  globalPlugins.push(initializedPlugin)
 
   return function removePlugin() {
-    const remainingGlobalPlugins = globalPlugins.filter((currentPlugin) => item !== currentPlugin)
+    const remainingGlobalPlugins = globalPlugins.filter((currentPlugin) => initializedPlugin !== currentPlugin)
     globalPlugins.splice(0, globalPlugins.length, ...remainingGlobalPlugins)
   }
+}
+
+export function removeAllPlugins() {
+  globalPlugins.length = 0
 }

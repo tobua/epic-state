@@ -166,3 +166,33 @@ test('Derived values are properly updated in nested structures.', () => {
   expect(root.secondCount.value).toBe(5)
   expect(doubleMock.mock.calls.length).toBe(5)
 })
+
+test('Derived values inside a separate scope are also updated.', () => {
+  const doubleMock = mock((root) => root.count * 2)
+  const root = state({
+    count: 1,
+    get double() {
+      return doubleMock(root)
+    },
+    increment() {
+      root.count += 1
+    },
+  })
+
+  function Component() {
+    return `${root.count} ${root.double}`
+  }
+
+  const render = () => Component()
+
+  expect(doubleMock.mock.calls.length).toBe(0)
+
+  expect(render()).toBe('1 2')
+
+  expect(doubleMock.mock.calls.length).toBe(1)
+
+  root.increment()
+  expect(render()).toBe('2 4')
+
+  expect(doubleMock.mock.calls.length).toBe(2)
+})

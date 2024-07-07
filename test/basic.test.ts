@@ -339,7 +339,6 @@ test('Added objects will also be observed.', async () => {
 })
 
 test('Derived values can be added to the state.', () => {
-  // eslint-disable-next-line @typescript-eslint/no-use-before-define
   const doubleMock = mock(() => root.count * 2)
   const root = state({ count: 1, doubleCount: doubleMock })
 

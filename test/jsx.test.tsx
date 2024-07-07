@@ -1,4 +1,3 @@
-/* eslint-disable react/react-in-jsx-scope */
 import './setup-dom'
 import { expect, test } from 'bun:test'
 import { render, serializeElement } from 'epic-jsx/test'

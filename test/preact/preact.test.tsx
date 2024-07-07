@@ -1,11 +1,8 @@
-/* eslint-disable react/react-in-jsx-scope */
 import '../setup-dom'
 import { expect, test } from 'bun:test'
 import { act, render } from '@testing-library/preact'
 import { state } from '../../index'
 import { connect } from '../../plugin/preact'
-
-// NOTE placing tsconfig in this folder with preact extensions didn't work.
 
 test('Can render a preact app and extend JSX elements (required for preact).', () => {
   const { getByText } = render(<p>test</p>)

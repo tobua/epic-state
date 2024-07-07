@@ -27,7 +27,7 @@
     "epic-jsx": "^0.7.2",
     "preact": "^10.22.1",
     "typescript": "^5.5.3",
-    "zero-configuration": "^0.13.0"
+    "zero-configuration": "^0.16.1"
   },
   "peerDependencies": {
     "epic-jsx": ">= 0.6",
@@ -109,8 +109,24 @@
       },
       {
         "extends": "plugin",
+        "folder": "test/epic",
+        "compilerOptions": {
+          "jsx": "react-jsx",
+          "paths": {
+            "react": [
+              "./../../node_modules/epic-jsx"
+            ],
+            "react/jsx-dev-runtime": [
+              "./../../node_modules/epic-jsx"
+            ]
+          }
+        }
+      },
+      {
+        "extends": "plugin",
         "folder": "test/preact",
         "compilerOptions": {
+          "jsx": "react-jsx",
           "jsxImportSource": "preact",
           "paths": {
             "react": [

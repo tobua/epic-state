@@ -1,14 +1,12 @@
-/* eslint-disable no-bitwise */
-/* eslint-disable no-underscore-dangle */
-import { options, Component, type VNode as PreactVNode } from 'preact'
-import { type Plugin, TupleArrayMap } from '../types'
+import { type Component, options, type VNode as preactVNode } from 'preact'
 import { log } from '../helper'
+import { type Plugin, TupleArrayMap } from '../types'
 
 // With preact you can set custom hooks for the render cycle: https://preactjs.com/guide/v10/options
 // While the render hook isn't exposed it can still be added as '__r' and used to access
 // the currently rendered component reliably.
 
-const enum OptionsTypes {
+enum OptionsTypes {
   HOOK = '__h',
   DIFF = '__b',
   DIFFED = 'diffed',
@@ -17,7 +15,7 @@ const enum OptionsTypes {
   UNMOUNT = 'unmount',
 }
 
-interface VNode<P = any> extends PreactVNode<P> {
+interface VNode<P = any> extends preactVNode<P> {
   /** The component instance for this VNode */
   __c: AugmentedComponent
   /** The parent VNode */
@@ -50,10 +48,7 @@ interface OptionsType {
   [OptionsTypes.UNMOUNT](vnode: VNode): void
 }
 
-type HookFn<T extends keyof OptionsType> = (
-  old: OptionsType[T],
-  ...a: Parameters<OptionsType[T]>
-) => ReturnType<OptionsType[T]>
+type HookFn<T extends keyof OptionsType> = (old: OptionsType[T], ...a: Parameters<OptionsType[T]>) => ReturnType<OptionsType[T]>
 
 let currentComponent: AugmentedComponent | undefined
 
@@ -120,13 +115,11 @@ export const connect: Plugin<string[]> = (initialize) => {
       }
 
       // Register rerender on current component.
-      if (!observedProperties.has(parent, property)) {
-        // eslint-disable-next-line no-underscore-dangle
-        observedProperties.add(parent, property, currentComponent._updater)
-      } else {
+      if (observedProperties.has(parent, property)) {
         const components = observedProperties.get(parent, property)
-        // eslint-disable-next-line no-underscore-dangle
         components?.push(currentComponent._updater)
+      } else {
+        observedProperties.add(parent, property, currentComponent._updater)
       }
     },
   }

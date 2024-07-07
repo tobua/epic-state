@@ -3,7 +3,7 @@ import { list } from './data/list'
 import { objectMap, objectSet } from './data/polyfill'
 import { derive, isTracked, track } from './derive'
 import { canPolyfill, canProxy, createBaseObject, defaultHandlePromise, isObject, log, newProxy, snapCache } from './helper'
-import { callPlugins, initializePlugins, plugin } from './plugin'
+import { callPlugins, initializePlugins, plugin, removeAllPlugins } from './plugin'
 import type {
   AsRef,
   CreateSnapshot,
@@ -18,7 +18,7 @@ import type {
 } from './types'
 
 export type { Plugin, RootState } from './types'
-export { plugin, list }
+export { plugin, removeAllPlugins, list }
 // biome-ignore lint/performance/noBarrelFile: Regular export...
 export { run } from './run'
 
@@ -170,7 +170,6 @@ export function state<T extends object, R extends object = undefined>(initialObj
       if (deleted) {
         notifyUpdate(['delete', [property], prevValue])
         // TODO no receiver, no parent access?
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
         callPlugins({ type: 'delete', target, initial: true }, property, proxyObject ?? root)
       }
       return deleted
