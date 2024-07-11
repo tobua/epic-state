@@ -1,3 +1,8 @@
+// biome-ignore lint/suspicious/noExplicitAny: any value can be assigned to a state object.
+export type Value = any
+
+export type Getter = () => Value
+
 export type AnyFunction = (...args: any[]) => any
 
 export type AsRef = { $$valtioRef: true }

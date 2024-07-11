@@ -1,17 +1,19 @@
 import { Renderer, getRoots } from 'epic-jsx'
 import { log } from '../helper'
-import { type Plugin, TupleArrayMap } from '../types'
+import { type Plugin, TupleArrayMap, type Value } from '../types'
 
 export const connect: Plugin<string[]> = (initialize) => {
   if (initialize !== 'initialize') {
     log('connect plugin cannot be configured', 'warning')
   }
 
-  const observedProperties = new TupleArrayMap<object, string, Function>()
+  const observedProperties = new TupleArrayMap<object, string, () => void>()
 
   return {
-    set: (property: string, parent: object, value: any, previousValue: any) => {
-      if (value === previousValue) return
+    set: (property: string, parent: object, value: Value, previousValue: Value) => {
+      if (value === previousValue) {
+        return
+      }
 
       const components = observedProperties.get(parent, property)
 
@@ -21,13 +23,19 @@ export const connect: Plugin<string[]> = (initialize) => {
       }
 
       // Trigger rerender on components.
-      components?.forEach((component) => component())
+      if (components) {
+        for (const component of components) {
+          component()
+        }
+      }
 
       // TODO This will trigger a rerender, probably better to add an interface specific to this.
       getRoots()
     },
     get: (property: string, parent: object) => {
-      if (!Renderer.current) return // Accessed outside a component.
+      if (!Renderer.current) {
+        return // Accessed outside a component.
+      }
       const { component } = Renderer.current
       if (!component?.rerender) {
         log('Cannot rerender epic-jsx component', 'warning')

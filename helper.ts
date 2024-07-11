@@ -1,4 +1,5 @@
 import { create } from 'logua'
+import type { Value } from './types'
 
 export const log = create('epic-state', 'red')
 
@@ -6,15 +7,28 @@ export const isObject = (x: unknown): x is object => typeof x === 'object' && x 
 
 export const listGetters = (input: object) => {
   const descriptors = Object.getOwnPropertyDescriptors(input)
-  const getters = {}
+  const getters: { [key: string]: PropertyDescriptor['get'] } = {}
 
-  Object.entries(descriptors).forEach(([key, { get }]) => {
+  for (const [key, { get }] of Object.entries(descriptors)) {
     if (typeof get === 'function') {
       getters[key] = get
     }
-  })
+  }
 
   return getters
+}
+
+// TODO probably not needed.
+export const isGetter = (input: object, property: string | symbol): boolean => {
+  const descriptor = Object.getOwnPropertyDescriptor(input, property)
+  return !!descriptor && typeof descriptor.get === 'function'
+}
+
+export const reevaluateGetter = (target: { [key: string | symbol]: Value }, property: string | symbol) => {
+  const temporaryValue = target[property]
+  delete target[property]
+  target[property] = temporaryValue
+  return target[property]
 }
 
 export const newProxy = <T extends object>(target: T, handler: ProxyHandler<T>): T => new Proxy(target, handler)

@@ -1,6 +1,6 @@
 import { type Component, options, type VNode as preactVNode } from 'preact'
 import { log } from '../helper'
-import { type Plugin, TupleArrayMap } from '../types'
+import { type Plugin, TupleArrayMap, type Value } from '../types'
 
 // With preact you can set custom hooks for the render cycle: https://preactjs.com/guide/v10/options
 // While the render hook isn't exposed it can still be added as '__r' and used to access
@@ -91,11 +91,13 @@ export const connect: Plugin<string[]> = (initialize) => {
     log('connect plugin cannot be configured', 'warning')
   }
 
-  const observedProperties = new TupleArrayMap<object, string, Function>()
+  const observedProperties = new TupleArrayMap<object, string, () => void>()
 
   return {
-    set: (property: string, parent: object, value: any, previousValue: any) => {
-      if (value === previousValue) return
+    set: (property: string, parent: object, value: Value, previousValue: Value) => {
+      if (value === previousValue) {
+        return
+      }
 
       const components = observedProperties.get(parent, property)
 
@@ -105,10 +107,16 @@ export const connect: Plugin<string[]> = (initialize) => {
       }
 
       // Trigger rerender on components.
-      components?.forEach((component) => component())
+      if (components) {
+        for (const component of components) {
+          component()
+        }
+      }
     },
     get: (property: string, parent: object) => {
-      if (!currentComponent) return // Accessed outside a component.
+      if (!currentComponent) {
+        return // Accessed outside a component.
+      }
       if (!currentComponent._updater) {
         log('Missing _updater on component', 'warning')
         return
@@ -117,8 +125,11 @@ export const connect: Plugin<string[]> = (initialize) => {
       // Register rerender on current component.
       if (observedProperties.has(parent, property)) {
         const components = observedProperties.get(parent, property)
-        components?.push(currentComponent._updater)
-      } else {
+
+        if (!components?.includes(currentComponent._updater)) {
+          components?.push(currentComponent._updater)
+        }
+      } else if (!observedProperties.has(parent, property)) {
         observedProperties.add(parent, property, currentComponent._updater)
       }
     },

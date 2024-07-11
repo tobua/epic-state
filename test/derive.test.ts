@@ -1,6 +1,24 @@
 import { expect, mock, test } from 'bun:test'
 import { state } from '../index'
 
+test('Basic derived value test.', async () => {
+  const root = state({
+    count: 1,
+    get double() {
+      return root.count * 2
+    },
+    increment() {
+      this.count += 1
+    },
+  })
+
+  expect(root.double).toBe(2)
+
+  root.increment()
+
+  expect(root.double).toBe(4)
+})
+
 test('Derived values will only be recalcuated when any of the attached values have changed.', async () => {
   const doubleMock = mock((root) => root.count * 2)
   const root = state({

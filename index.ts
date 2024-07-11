@@ -175,10 +175,19 @@ export function state<T extends object, R extends object = undefined>(initialObj
       return deleted
     },
     get(target, property, receiver) {
-      if (property === 'parent') return parent // Parent access untracked.
-      if (property === 'root') return root // Root access untracked.
-      if (property === 'plugin') return undefined // Plugin cannot be accessed or tracked.
-      if (property === '_plugin') return plugins // Internal plugin access.
+      if (property === 'parent') {
+        return parent // Parent access untracked.
+      }
+      if (property === 'root') {
+        return root // Root access untracked.
+      }
+      if (property === 'plugin') {
+        return undefined // Plugin cannot be accessed or tracked.
+      }
+      if (property === '_plugin') {
+        return plugins // Internal plugin access.
+      }
+
       const value = Reflect.get(target, property, receiver)
       if (!initialization && typeof value !== 'function') {
         notifyUpdate(['get', [property], value])
