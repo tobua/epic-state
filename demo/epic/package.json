@@ -5,12 +5,12 @@
     "types": "tsc"
   },
   "dependencies": {
-    "@rsbuild/core": "^0.7.10",
-    "@rsbuild/plugin-react": "^0.7.10",
+    "@rsbuild/core": "^1.0.1-beta.3",
+    "@rsbuild/plugin-react": "^1.0.1-beta.3",
     "epic-jsx": "^0.7.2",
     "exmpl": "^3.1.0",
     "typescript": "^5.5.3",
-    "zero-configuration": "^0.13.0"
+    "zero-configuration": "^0.16.3"
   },
   "localDependencies": {
     "epic-state": "../.."

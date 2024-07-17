@@ -6,6 +6,12 @@ plugin(connect) // Register global connect plugin for epic-jsx.
 
 const root = state({
   count: 1,
+  get double() {
+    return root.count * 2
+  },
+  increment: () => {
+    root.count += 1
+  }
 })
 
 function App() {
@@ -22,11 +28,9 @@ function App() {
         borderRadius: 20,
         cursor: 'pointer',
       }}
-      onClick={() => {
-        root.count += 1
-      }}
+      onClick={root.increment}
     >
-      Increment {root.count}
+      Increment {root.count} {root.double}
     </button>
   )
 }

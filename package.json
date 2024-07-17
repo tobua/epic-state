@@ -27,7 +27,7 @@
     "epic-jsx": "^0.7.2",
     "preact": "^10.22.1",
     "typescript": "^5.5.3",
-    "zero-configuration": "^0.16.1"
+    "zero-configuration": "^0.16.3"
   },
   "peerDependencies": {
     "epic-jsx": ">= 0.6",
@@ -77,6 +77,12 @@
         "rules": {
           "performance": {
             "noDelete": "off"
+          },
+          "suspicious": {
+            "noExplicitAny": "off"
+          },
+          "complexity": {
+            "noBannedTypes": "off"
           }
         }
       },

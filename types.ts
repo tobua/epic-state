@@ -1,16 +1,11 @@
 // biome-ignore lint/suspicious/noExplicitAny: any value can be assigned to a state object.
 export type Value = any
-
 export type Getter = () => Value
-
+export type RerenderMethod = () => void
 export type AnyFunction = (...args: any[]) => any
-
 export type AsRef = { $$valtioRef: true }
-
 export type ProxyObject = object & { root?: ProxyObject; parent?: ProxyObject }
-
 export type Property = string | symbol
-
 export type Path = Property[]
 
 export type Operation =
@@ -65,7 +60,7 @@ type MapElementType<E> = E extends Map<infer U, infer V> ? [U, V] : never
 type ArrayWithParent<T, P, R> = {
   parent: P
   root: R
-} & Array<T>
+} & T[]
 
 type SetWithParent<T, P, R> = {
   parent: P
@@ -83,7 +78,7 @@ type ChildState<E, P, R> = E extends Function
     ? {
         parent: P
         root: R
-      } & (E extends Array<any>
+      } & (E extends any[]
         ? ArrayWithParent<ArrayElementType<E>, P, R>
         : E extends Set<any>
           ? SetWithParent<SetElementType<E>, P, R>
@@ -106,15 +101,15 @@ export type PluginActions = {
   delete?: (property: string, parent: object) => void
 }
 
-export type Plugin<T extends any[]> = (...configuration: T) => Plugin<['initialize']> | PluginActions
+export type Plugin<T extends any[]> = ((...configuration: T) => Plugin<['initialize']>) | PluginActions
 
-export type ObservedProperties = TupleArrayMap<object, string, Function>
+export type ObservedProperties = TupleArrayMap<object, string, RerenderMethod>
 
 export class TupleArrayMap<A, B, C> {
   protected observedProperties: Map<A, Map<B, C[]>> = new Map()
 
   has(firstKey: A, secondKey: B): boolean {
-    return (this.observedProperties.has(firstKey) && this.observedProperties.get(firstKey)?.has(secondKey)) || false
+    return !!(this.observedProperties.has(firstKey) && this.observedProperties.get(firstKey)?.has(secondKey))
   }
 
   get(firstKey: A, secondKey: B): C[] | undefined {
@@ -136,7 +131,7 @@ export class TupleArrayMap<A, B, C> {
   delete(firstKey: A, secondKey: B): void {
     if (this.observedProperties.has(firstKey)) {
       const properties = this.observedProperties.get(firstKey)
-      if (properties.has(secondKey)) {
+      if (properties?.has(secondKey)) {
         properties.delete(secondKey)
       }
     }

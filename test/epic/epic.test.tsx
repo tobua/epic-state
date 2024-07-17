@@ -3,7 +3,6 @@ import { beforeEach, expect, test } from 'bun:test'
 import { render, serializeElement } from 'epic-jsx/test'
 import { plugin, removeAllPlugins, state } from '../../index'
 import { connect } from '../../plugin/epic-jsx'
-import { process } from '../helper'
 
 beforeEach(() => {
   removeAllPlugins()
@@ -37,24 +36,20 @@ test('Derived values will receive updated values in connected rendering methods.
 
   root.increment()
 
-  await process()
-
   expect(renderCount).toBe(2)
 
-  // TODO wrong values
-  expect(serializeElement()).toEqual('<body><p>count: 2</p></body>')
-  // TODO unnecessary rerenders are happening.
+  expect(serializeElement()).toEqual('<body><p>count: 4</p></body>')
   expect(renderCount).toBe(2)
 
   root.count = 3 // Ignored as value the same
 
-  expect(serializeElement()).toEqual('<body><p>count: 2</p></body>')
-  expect(renderCount).toBe(2)
+  expect(serializeElement()).toEqual('<body><p>count: 6</p></body>')
+  expect(renderCount).toBe(3)
 
   root.increment()
 
-  expect(serializeElement()).toEqual('<body><p>count: 2</p></body>')
-  expect(renderCount).toBe(2)
+  expect(serializeElement()).toEqual('<body><p>count: 8</p></body>')
+  expect(renderCount).toBe(4)
 })
 
 test('Combinations of variously stacked components will not be rendered more than necessary.', async () => {

@@ -41,6 +41,7 @@ const createSnapshot: CreateSnapshot = <T extends object>(
   for (const key of Reflect.ownKeys(target)) {
     if (Object.getOwnPropertyDescriptor(snap, key)) {
       // Only the known case is Array.length so far.
+      // @ts-ignore TODO why this return?
       return
     }
     const value = Reflect.get(target, key)
@@ -85,7 +86,9 @@ export function state<T extends object, R extends object = undefined>(initialObj
   const plugins = initializePlugins(initialObject)
   derive(initialObject)
   const found = proxyCache.get(initialObject) as T | undefined
-  if (found) return found
+  if (found) {
+    return found
+  }
   let version = versionHolder[0]
   const listeners = new Set<Listener>()
   const notifyUpdate = (operation: Operation, nextVersion = ++versionHolder[0]) => {
@@ -110,6 +113,7 @@ export function state<T extends object, R extends object = undefined>(initialObj
     if (checkVersion !== nextCheckVersion && !listeners.size) {
       checkVersion = nextCheckVersion
       for (const [propProxyState] of propProxyStates) {
+        // @ts-ignore TODO no tests are using this.
         const propVersion = propProxyState[1](nextCheckVersion)
         if (propVersion > version) {
           version = propVersion
@@ -189,6 +193,13 @@ export function state<T extends object, R extends object = undefined>(initialObj
       }
 
       const value = Reflect.get(target, property, receiver)
+
+      // TODO not needed.
+      // if (isGetter(initialObject, property)) {
+      // Trigger reevaluate of getter, by removing and readding the value.
+      // value = reevaluateGetter(target, property)
+      //}
+
       if (!initialization && typeof value !== 'function') {
         notifyUpdate(['get', [property], value])
         // Only call plugins for leaf access.
@@ -256,9 +267,9 @@ export function state<T extends object, R extends object = undefined>(initialObj
       }
       Reflect.set(target, property, nextValue, receiver)
       if (!initialization) {
+        isTracked(root ?? receiver, property) // Mark changed values as "dirty" before plugins (rerenders).
         notifyUpdate(['set', [property], value, prevValue])
         callPlugins({ type: 'set', target: receiver, initial: true }, property, receiver ?? root, value, prevValue)
-        isTracked(root ?? receiver, property)
       }
       return true
     },

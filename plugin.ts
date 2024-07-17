@@ -22,12 +22,14 @@ type CallPluginOptions = {
 }
 
 // NOTE accessing values in here can also lead to recursive calls.
-export function callPlugins({ type, target, initial = false }: CallPluginOptions, ...values: [Property, object, ...any]) {
+export function callPlugins({ type, target, initial = false }: CallPluginOptions, ...values: [Property, object, any?, any?]) {
   // Current plugin.
   if (target._plugin) {
     for (const item of target._plugin) {
-      if (item[type]) {
-        item[type]?.call(item, ...values)
+      const plugin = item[type]
+      if (plugin) {
+        // @ts-ignore Apply can also be used on arrow functions to override the this.
+        plugin.apply(item, values)
       }
     }
   }
@@ -38,17 +40,20 @@ export function callPlugins({ type, target, initial = false }: CallPluginOptions
     callPlugins({ type, target: target.parent }, ...values)
   }
 
-  if (!initial) return
+  if (!initial) {
+    return
+  }
 
   // Global plugins.
   for (const item of globalPlugins) {
-    if (item[type]) {
-      item[type]?.call(item, ...values)
+    // @ts-ignore
+    const plugin = item[type]
+    if (plugin) {
+      plugin.apply(item, values)
     }
   }
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: Used to allow for generic plugin.
 export function plugin(plugin: Plugin<any>) {
   const initializedPlugin = typeof plugin === 'function' ? plugin('initialize') : plugin
   globalPlugins.push(initializedPlugin)
