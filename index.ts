@@ -71,6 +71,7 @@ const proxyCache = new WeakMap<object, ProxyObject>()
 const versionHolder = [1, 1] as [number, number]
 
 // proxy function renamed to state (proxy as hidden implementation detail).
+// @ts-ignore TODO figure out if object will work as expected
 export function state<T extends object, R extends object = undefined>(initialObject: T = {} as T, parent?: object, root?: R): T {
   let initialization = true
   if (!isObject(initialObject)) {

@@ -4,6 +4,7 @@ type KeyValRecord<K, V> = [key: K, value: V]
 
 type InternalObjectMap<K, V> = Map<K, V> & {
   data: KeyValRecord<K, V>[]
+  // biome-ignore lint/style/useNamingConvention: This is the JavaScript standard.
   toJSON: object
 }
 
@@ -16,10 +17,10 @@ export function objectMap<K, V, R extends object>(
   // Separate object referenced in methods, as type inference with this didn't work properly.
   const polyfill = {
     data: Array.from(entries || []) as KeyValRecord<K, V>[],
-    has(key) {
+    has(key: K) {
       return polyfill.data.some((p) => p[0] === key)
     },
-    set(key, value) {
+    set(key: K, value: V) {
       // TODO transform value to state polyfill.
       const record = polyfill.data.find((p) => p[0] === key)
       if (record) {
@@ -29,10 +30,10 @@ export function objectMap<K, V, R extends object>(
       }
       return polyfill
     },
-    get(key) {
+    get(key: K) {
       return polyfill.data.find((p) => p[0] === key)?.[1]
     },
-    delete(key) {
+    delete(key: K) {
       const index = polyfill.data.findIndex((p) => p[0] === key)
       if (index === -1) {
         return false
@@ -46,13 +47,14 @@ export function objectMap<K, V, R extends object>(
     get size() {
       return polyfill.data.length
     },
+    // biome-ignore lint/style/useNamingConvention: This is the JavaScript standard.
     toJSON() {
       return new Map(polyfill.data)
     },
-    forEach(callback) {
-      polyfill.data.forEach((p) => {
+    forEach(callback: (value: V, key: K, current: any) => void) {
+      for (const p of polyfill.data) {
         callback(p[1], p[0], polyfill)
-      })
+      }
     },
     keys() {
       return polyfill.data.map((p) => p[0]).values()
@@ -80,6 +82,7 @@ export function objectMap<K, V, R extends object>(
     size: {
       enumerable: false,
     },
+    // biome-ignore lint/style/useNamingConvention: This is the JavaScript standard.
     toJSON: {
       enumerable: false,
     },
@@ -93,13 +96,14 @@ export function objectMap<K, V, R extends object>(
 // properties that we don't want to expose to the end-user
 type InternalObjectSet<T> = Set<T> & {
   data: T[]
+  // biome-ignore lint/style/useNamingConvention: This is the JavaScript standard.
   toJSON: object
 }
 
 export function objectSet<T, R extends object>(state: typeof State, initialValues?: Iterable<T> | null, parent?: object, root?: R): Set<T> {
   const polyfill = {
     data: Array.from(new Set(initialValues)),
-    has(value) {
+    has(value: T) {
       return polyfill.data.indexOf(value) !== -1
     },
     add(value: T) {
@@ -113,7 +117,7 @@ export function objectSet<T, R extends object>(state: typeof State, initialValue
       }
       return polyfill
     },
-    delete(value) {
+    delete(value: T) {
       const index = polyfill.data.indexOf(value)
       if (index === -1) {
         return false
@@ -127,14 +131,15 @@ export function objectSet<T, R extends object>(state: typeof State, initialValue
     get size() {
       return polyfill.data.length
     },
-    forEach(cb) {
-      polyfill.data.forEach((value) => {
-        cb(value, value, polyfill)
-      })
+    forEach(callback: (value: T, current: any) => void) {
+      for (const value of polyfill.data) {
+        callback(value, polyfill)
+      }
     },
     get [Symbol.toStringTag]() {
       return 'Set'
     },
+    // biome-ignore lint/style/useNamingConvention: This is the JavaScript standard.
     toJSON() {
       // TODO is a regular Set valid JSON?
       return new Set(polyfill.data)
@@ -157,6 +162,7 @@ export function objectSet<T, R extends object>(state: typeof State, initialValue
 
   const set: InternalObjectSet<T> = state(polyfill, parent, root) as unknown as Set<T> & {
     data: T[]
+    // biome-ignore lint/style/useNamingConvention: This is the JavaScript standard.
     toJSON: () => string
   }
 
@@ -167,6 +173,7 @@ export function objectSet<T, R extends object>(state: typeof State, initialValue
     size: {
       enumerable: false,
     },
+    // biome-ignore lint/style/useNamingConvention: This is the JavaScript standard.
     toJSON: {
       enumerable: false,
     },
