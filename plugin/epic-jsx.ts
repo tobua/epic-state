@@ -7,7 +7,7 @@ export const connect: Plugin<string[]> = (initialize) => {
     log('connect plugin cannot be configured', 'warning')
   }
 
-  const observedProperties = new TupleArrayMap<object, string, RerenderMethod>()
+  const observedProperties = new TupleArrayMap<object, string, { rerender: RerenderMethod; type: any }>()
 
   return {
     set: (property: string, parent: object, value: Value, previousValue: Value) => {
@@ -23,9 +23,14 @@ export const connect: Plugin<string[]> = (initialize) => {
       }
 
       // Trigger rerender on components.
+      const renderedComponents = new Set()
       if (components) {
         for (const component of components) {
-          component()
+          // Check if already rendered
+          if (!renderedComponents.has(component.type)) {
+            component.rerender()
+            renderedComponents.add(component.type) // Mark as rendered
+          }
         }
       }
 
@@ -36,7 +41,7 @@ export const connect: Plugin<string[]> = (initialize) => {
       if (!Renderer.current) {
         return // Accessed outside a component.
       }
-      const { component } = Renderer.current
+      const { component, type } = Renderer.current
       if (!component?.rerender) {
         log('Cannot rerender epic-jsx component', 'warning')
         return
@@ -45,11 +50,11 @@ export const connect: Plugin<string[]> = (initialize) => {
       // Register rerender on current component.
       if (observedProperties.has(parent, property)) {
         const components = observedProperties.get(parent, property)
-        if (!components?.includes(component.rerender)) {
-          components?.push(component.rerender)
-        }
+        //if (!components?.includes(component.rerender)) {
+        components?.push({ rerender: component.rerender, type })
+        // }
       } else if (!observedProperties.has(parent, property)) {
-        observedProperties.add(parent, property, component.rerender)
+        observedProperties.add(parent, property, { rerender: component.rerender, type })
       }
     },
   }

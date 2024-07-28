@@ -85,3 +85,96 @@ test('Component will rerender on state updates.', async () => {
   expect(serializeElement()).toContain('Increment 123')
   expect(root.count).toBe(123)
 })
+
+test('No unnecessary rerenders are happening when multiple values are tracked.', async () => {
+  const root = state({ first: 1, second: 2 })
+  let renderCount = 0
+
+  plugin(connect)
+
+  function App() {
+    renderCount += 1
+    return (
+      <div>
+        count: {root.first} {root.second}
+      </div>
+    )
+  }
+
+  const { serialized } = render(<App />)
+
+  expect(serialized).toContain('count: 1 2')
+  expect(renderCount).toBe(1)
+
+  root.first += 1
+  root.second += 1
+
+  expect(serializeElement()).toContain('count: 2 3')
+  expect(renderCount).toBe(3) // One render too many.
+
+  root.first += 1
+  root.second += 1
+
+  expect(serializeElement()).toContain('count: 3 4')
+  expect(renderCount).toBe(5)
+})
+
+test('Child components will always render after any parents.', async () => {
+  const root = state({ count: 1, childCount: 1, countBoth: 1 })
+  const renderCounts = { parent: 0, child: 0 }
+
+  plugin(connect)
+
+  function Child() {
+    renderCounts.child += 1
+    return (
+      <p>
+        child: {root.childCount} {root.countBoth}
+      </p>
+    )
+  }
+
+  function Parent() {
+    renderCounts.parent += 1
+    return (
+      <div>
+        parent: {root.count} {root.countBoth}
+        <Child />
+      </div>
+    )
+  }
+
+  const { serialized } = render(<Parent />)
+
+  expect(serialized).toContain('parent: 1')
+  expect(serialized).toContain('child: 1')
+
+  expect(renderCounts).toEqual({ parent: 1, child: 1 })
+
+  root.count += 1
+
+  let newMarkup = serializeElement()
+
+  expect(newMarkup).toContain('parent: 2')
+  expect(newMarkup).toContain('child: 1')
+
+  expect(renderCounts).toEqual({ parent: 2, child: 2 }) // TODO no need for child to rerender.
+
+  root.childCount += 1
+
+  newMarkup = serializeElement()
+
+  expect(newMarkup).toContain('parent: 2')
+  expect(newMarkup).toContain('child: 2')
+
+  expect(renderCounts).toEqual({ parent: 2, child: 3 })
+
+  root.countBoth += 1
+
+  newMarkup = serializeElement()
+
+  expect(newMarkup).toContain('parent: 2 2')
+  expect(newMarkup).toContain('child: 2 2')
+
+  expect(renderCounts).toEqual({ parent: 3, child: 5 }) // TODO child should only add one (epic-jsx fix), rerender argument.
+})
