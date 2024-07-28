@@ -2,6 +2,8 @@ import { expect, mock, test } from 'bun:test'
 import { observe, state } from '../index'
 import { process } from './helper'
 
+global.stateDisableBatching = true
+
 test('Can observe changes to any state object.', async () => {
   const subscribeMock = mock()
   const firstRoot = state({ count: 1 })

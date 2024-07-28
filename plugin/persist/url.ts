@@ -1,8 +1,8 @@
 import { log } from '../../helper'
-import type { Plugin } from '../../types'
+import type { Plugin, Value } from '../../types'
 
 // Nested object values are not persisted.
-const isTopLevelValue = (value: any) => typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
+const isTopLevelValue = (value: Value) => typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
 
 function replaceUrl(queryParams: URLSearchParams) {
   const newUrl = `${window.location.origin}${window.location.pathname}?${queryParams.toString()}`
@@ -11,28 +11,28 @@ function replaceUrl(queryParams: URLSearchParams) {
   window.location.href = newUrl
 }
 
-function updateUrlParameter(property: string, value: any) {
+function updateUrlParameter(property: string, value: Value) {
   const queryParams = new URLSearchParams(window.location.search)
   queryParams.set(property, value)
   replaceUrl(queryParams)
 }
 
-function initializeUrl(state: object, properties: string[]) {
+function initializeUrl(state: { [key: string]: Value }, properties: string[]) {
   const queryParams = new URLSearchParams(window.location.search)
 
   // Override state with initial URL parameters.
-  Array.from(queryParams.entries()).forEach(([key, value]) => {
+  for (const [key, value] of queryParams.entries()) {
     if (Object.hasOwn(state, key) && key !== 'plugin' && (properties.length === 0 || properties.includes(key))) {
       state[key] = typeof state[key] === 'number' ? Number(value) : value
     }
-  })
+  }
 
   // Override URL parameters with initial state.
-  Object.entries(state).forEach(([key, value]) => {
+  for (const [key, value] of Object.entries(state)) {
     if (Object.hasOwn(state, key) && isTopLevelValue(value) && key !== 'plugin' && (properties.length === 0 || properties.includes(key))) {
       queryParams.set(key, value as string)
     }
-  })
+  }
 
   replaceUrl(queryParams)
 }
@@ -42,8 +42,10 @@ export const persistUrl: Plugin<string[]> = (...configuration) => {
   let properties: string[] = []
 
   const actions = {
-    set: (property: string, parent: object, value: any, previousValue: any) => {
-      if (value === previousValue || (properties.length !== 0 && !properties.includes(property))) return
+    set: (property: string, _parent: object, value: Value, previousValue: Value) => {
+      if (value === previousValue || (properties.length !== 0 && !properties.includes(property))) {
+        return
+      }
       updateUrlParameter(property, value)
     },
   }

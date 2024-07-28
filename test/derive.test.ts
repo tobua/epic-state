@@ -1,6 +1,8 @@
 import { expect, mock, test } from 'bun:test'
 import { state } from '../index'
 
+global.stateDisableBatching = true
+
 test('Basic derived value test.', async () => {
   const root = state({
     count: 1,

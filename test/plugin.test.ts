@@ -2,6 +2,8 @@ import './setup-dom'
 import { type Mock, expect, mock, test } from 'bun:test'
 import { type Plugin, plugin, state } from '../index'
 
+global.stateDisableBatching = true
+
 const createLogPlugin = (currentMock: Mock<any>) =>
   ((...configuration) => {
     let properties: string[]

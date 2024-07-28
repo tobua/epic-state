@@ -1,4 +1,1 @@
-export const process = () =>
-  new Promise((done) => {
-    setTimeout(done, 1)
-  })
+export const process = () => Promise.resolve() // NOTE processes observe() listeners.

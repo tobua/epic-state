@@ -1,6 +1,8 @@
 import { expect, mock, test } from 'bun:test'
 import { run, state } from '../index'
 
+global.stateDisableBatching = true
+
 test('Object with values is converted to a proxy and state can be changed.', () => {
   const root = state({
     count: 1,

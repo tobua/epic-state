@@ -2,6 +2,8 @@ import { expect, mock, test } from 'bun:test'
 import { observe, state } from '../index'
 import { process } from './helper'
 
+global.stateDisableBatching = true
+
 test('Methods added to the state will not be tracked or converted to a proxy.', async () => {
   const subscribeMock = mock()
   const root = state({

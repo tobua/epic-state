@@ -3,6 +3,8 @@ import { beforeEach, expect, test } from 'bun:test'
 import { state } from '../../index'
 import { persistUrl } from '../../plugin/persist/browser'
 
+global.stateDisableBatching = true
+
 interface ExtendedLocation extends Location {
   searchParams: URLSearchParams
 }

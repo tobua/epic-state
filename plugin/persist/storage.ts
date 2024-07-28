@@ -1,33 +1,33 @@
 import { log } from '../../helper'
-import type { Plugin } from '../../types'
+import type { Plugin, Value } from '../../types'
 
 type Identifier = string | number
 
 const identifiers = new Set<Identifier>()
 
-function initializeStorage(state: object, properties: string[], identifier: string) {
-  const defaultState = {}
+function initializeStorage(state: { [key: string]: Value }, properties: string[], identifier: string) {
+  const defaultState: { [key: string]: Value } = {}
 
-  properties.forEach((property) => {
+  for (const property of properties) {
     defaultState[property] = state[property]
-  })
+  }
 
   const existingStore = window.localStorage.getItem(identifier)
-  const data = {}
+  const data: { [key: string]: Value } = {}
 
   // Add existing state properties to the store.
-  properties.forEach((property) => {
+  for (const property of properties) {
     data[property] = state[property]
-  })
+  }
 
   if (existingStore) {
     // Read existing store and add to state.
     const existingData = JSON.parse(existingStore)
-    Object.keys(existingData).forEach((key) => {
+    for (const key of Object.keys(existingData)) {
       if (properties.includes(key)) {
         state[key] = existingData[key]
       }
-    })
+    }
     // Loaded data has precedence over defaults.
     Object.assign(data, existingData)
   }
@@ -51,9 +51,11 @@ export const persistStorage: Plugin<[{ id: Identifier; prefix?: string; properti
   identifiers.add(identifier)
 
   const actions = {
-    set: (property: string, parent: object, value: any, previousValue: any) => {
-      if (value === previousValue || (properties.length !== 0 && !properties.includes(property))) return
-      const currentValues = JSON.parse(window.localStorage.getItem(identifier))
+    set: (property: string, _parent: object, value: Value, previousValue: Value) => {
+      if (value === previousValue || (properties.length !== 0 && !properties.includes(property))) {
+        return
+      }
+      const currentValues = JSON.parse(window.localStorage.getItem(identifier) ?? '{}')
       currentValues[property] = value
       window.localStorage.setItem(identifier, JSON.stringify(currentValues))
     },
@@ -64,7 +66,7 @@ export const persistStorage: Plugin<[{ id: Identifier; prefix?: string; properti
       log('persistStorage: Plugin has already been configured', 'warning')
     }
 
-    initializeStorage(innerConfiguration[1] as any, properties, identifier)
+    initializeStorage(innerConfiguration[1] as object, properties, identifier)
     return actions
   }
 }

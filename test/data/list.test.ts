@@ -2,6 +2,8 @@ import { expect, mock, test } from 'bun:test'
 import { list, observe, state } from '../../index'
 import { process } from '../helper'
 
+global.stateDisableBatching = true
+
 const counter = (initialCount: number) => ({
   count: initialCount,
 })

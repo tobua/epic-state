@@ -2,6 +2,8 @@ import { expect, mock, test } from 'bun:test'
 import { type RootState, observe, state } from '../index'
 import { process } from './helper'
 
+global.stateDisableBatching = true
+
 test('Can navigate through state tree using the parent property.', async () => {
   const subscribeMock = mock()
   const initialObject = {
@@ -40,7 +42,7 @@ test('Can navigate through state tree using the parent property.', async () => {
   expect(root.list.parent.list[1]).toBe(2)
 })
 
-test('Root property attached to any state object pointing to the root state.', async () => {
+test('Root property attached to any state object pointing to the root state.', () => {
   const initialObject = {
     id: 1,
     nested: { id: 2, nested: { id: 3 } },

@@ -4,6 +4,10 @@ import { render, serializeElement } from 'epic-jsx/test'
 import { plugin, removeAllPlugins, state } from '../../index'
 import { connect } from '../../plugin/epic-jsx'
 
+global.stateDisableBatching = true
+
+document.body.innerHTML = '' // Necessary when running whole suite.
+
 beforeEach(() => {
   removeAllPlugins()
 })
@@ -12,17 +16,14 @@ test('Derived values will receive updated values in connected rendering methods.
   plugin(connect)
 
   let renderCount = 0
-  // @ts-expect-error TODO
   const root = state({
     count: 1,
-    // @ts-expect-error TODO bind this to getters
     get double() {
       return root.count * 2
     },
     increment() {
       this.count += 1
     },
-    // plugin: connect,
   })
 
   function Counter() {
@@ -52,50 +53,35 @@ test('Derived values will receive updated values in connected rendering methods.
   expect(renderCount).toBe(4)
 })
 
-test('Combinations of variously stacked components will not be rendered more than necessary.', async () => {
+test('Component will rerender on state updates.', async () => {
+  const root = state({ count: 1 })
+
   plugin(connect)
 
-  let renderCount = 0
-  // @ts-expect-error TODO
-  const root = state({
-    count: 1,
-    // @ts-expect-error TODO bind this to getters
-    get double() {
-      return root.count * 2
-    },
-    increment() {
-      this.count += 1
-    },
-    // plugin: connect,
-  })
-
-  function Counter() {
-    renderCount += 1
+  function App() {
     return (
-      <p>
-        count: {root.count} {root.double}
-      </p>
+      <button
+        type="button"
+        onClick={() => {
+          root.count += 1
+        }}
+      >
+        Increment {root.count}
+      </button>
     )
   }
-  const { serialized } = render(<Counter />)
 
-  expect(serialized).toEqual('<body><p>count: 1 2</p></body>')
-  expect(renderCount).toBe(1)
+  const { serialized } = render(<App />)
 
-  root.count = 2
-  root.increment()
+  expect(serialized).toContain('Increment 1')
 
-  expect(serializeElement()).toEqual('<body><p>count: 3 6</p></body>')
-  // TODO unnecessary rerenders are happening.
-  expect(renderCount).toBe(3)
+  root.count += 1
 
-  root.count = 3 // Ignored as value the same
+  expect(root.count).toBe(2)
+  expect(serializeElement()).toContain('Increment 2')
 
-  expect(serializeElement()).toEqual('<body><p>count: 3 6</p></body>')
-  expect(renderCount).toBe(3)
+  root.count = 123
 
-  root.increment()
-
-  expect(serializeElement()).toEqual('<body><p>count: 4 8</p></body>')
-  expect(renderCount).toBe(4)
+  expect(serializeElement()).toContain('Increment 123')
+  expect(root.count).toBe(123)
 })

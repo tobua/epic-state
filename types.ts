@@ -1,4 +1,3 @@
-// biome-ignore lint/suspicious/noExplicitAny: any value can be assigned to a state object.
 export type Value = any
 export type Getter = () => Value
 export type RerenderMethod = () => void
@@ -40,18 +39,10 @@ export type Snapshot<T> = T extends SnapshotIgnore
       : T
 
 export type HandlePromise = <P extends Promise<any>>(promise: P) => Awaited<P>
-
-export type CreateSnapshot = <T extends object>(target: T, version: number, handlePromise?: HandlePromise) => T
-
 export type RemoveListener = () => void
 export type AddListener = (listener: Listener) => RemoveListener
 
-export type ProxyState = readonly [
-  target: object,
-  ensureVersion: (nextCheckVersion?: number) => number,
-  createSnapshot: CreateSnapshot,
-  addListener: AddListener,
-]
+export type ProxyState = readonly [target: object, ensureVersion: (nextCheckVersion?: number) => number, addListener: AddListener]
 
 type ArrayElementType<E> = E extends (infer U)[] ? U : never
 type SetElementType<E> = E extends Set<infer U> ? U : never

@@ -1,6 +1,8 @@
 import { expect, test } from 'bun:test'
 import { listGetters } from '../helper'
 
+global.stateDisableBatching = true
+
 test('Correctly recoginizes getter values on an object.', () => {
   const state = {
     count: 1,

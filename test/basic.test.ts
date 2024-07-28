@@ -1,6 +1,8 @@
 import { expect, mock, test } from 'bun:test'
-import { getVersion, observe, remove, snapshot, state } from '../index'
+import { getVersion, observe, remove, state } from '../index'
 import { process } from './helper'
+
+global.stateDisableBatching = true
 
 test('Object with values is converted to a proxy and state can be changed.', () => {
   const root = state({ hello: 'world', count: 1 })
@@ -134,24 +136,6 @@ test('Observe will only observe changes to the passed state.', async () => {
   expect(subscribeMock.mock.calls[0][0][0][0]).toEqual('get')
   expect(subscribeMock.mock.calls[0][0][1][0]).toEqual('get')
   expect(subscribeMock.mock.calls[0][0][2][0]).toEqual('set') // Only one set for secondRoot.
-})
-
-test('Changes to a snapshot remain untracked.', async () => {
-  const subscribeMock = mock()
-  const root = state({ count: 1 })
-
-  observe(subscribeMock, root)
-
-  const untrackedRoot = snapshot(root)
-
-  expect(() => {
-    // @ts-expect-error object frozen
-    untrackedRoot.count += 1
-  }).toThrow()
-
-  await process()
-
-  expect(subscribeMock).not.toHaveBeenCalled()
 })
 
 test('Each proxy has a version.', () => {

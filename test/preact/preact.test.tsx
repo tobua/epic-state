@@ -4,6 +4,8 @@ import { act, render } from '@testing-library/preact'
 import { state } from '../../index'
 import { connect } from '../../plugin/preact'
 
+global.stateDisableBatching = true
+
 test('Can render a preact app and extend JSX elements (required for preact).', () => {
   const { getByText } = render(<p>test</p>)
   // screen.debug()

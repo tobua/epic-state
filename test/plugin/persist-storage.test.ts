@@ -3,6 +3,8 @@ import { afterEach, expect, test } from 'bun:test'
 import { state } from '../../index'
 import { persistStorage } from '../../plugin/persist/browser'
 
+global.stateDisableBatching = true
+
 afterEach(() => {
   window.localStorage.clear()
 })
