@@ -1,4 +1,4 @@
-import { Renderer, getRoots } from 'epic-jsx'
+import { Renderer, type Type, getRoots } from 'epic-jsx'
 import { log } from '../helper'
 import { type Plugin, type RerenderMethod, TupleArrayMap, type Value } from '../types'
 
@@ -7,7 +7,7 @@ export const connect: Plugin<string[]> = (initialize) => {
     log('connect plugin cannot be configured', 'warning')
   }
 
-  const observedProperties = new TupleArrayMap<object, string, { rerender: RerenderMethod; type: any }>()
+  const observedProperties = new TupleArrayMap<object, string, { rerender: RerenderMethod; type: Type }>()
 
   return {
     set: (property: string, parent: object, value: Value, previousValue: Value) => {
