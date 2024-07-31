@@ -253,7 +253,7 @@ test('Arrays, Maps and Sets are also tracked.', async () => {
   expect(subscribeMock.mock.calls[0][0][0]).toEqual(['set', ['list', '3'], 4, undefined])
 })
 
-// TODO doesn't work yet.
+// biome-ignore lint/suspicious/noSkippedTests: TODO
 test.skip('Map/Set polyfill works at the top-level.', async () => {
   const subscribeMock = mock()
   const root = state(new Set([{ name: 'apple' }, { name: 'banana' }, { name: 'cherry' }, { name: 'apple' }]))

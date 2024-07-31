@@ -1,4 +1,4 @@
-import { type Component, options, type VNode as preactVNode } from 'preact'
+import { type Component, options, type VNode as preactNode } from 'preact'
 import { log } from '../helper'
 import { type Plugin, TupleArrayMap, type Value } from '../types'
 
@@ -7,15 +7,22 @@ import { type Plugin, TupleArrayMap, type Value } from '../types'
 // the currently rendered component reliably.
 
 enum OptionsTypes {
+  // biome-ignore lint/style/useNamingConvention: Preact default.
   HOOK = '__h',
+  // biome-ignore lint/style/useNamingConvention: Preact default.
   DIFF = '__b',
+  // biome-ignore lint/style/useNamingConvention: Preact default.
   DIFFED = 'diffed',
+  // biome-ignore lint/style/useNamingConvention: Preact default.
   RENDER = '__r',
+  // biome-ignore lint/style/useNamingConvention: Preact default.
   CATCH_ERROR = '__e',
+  // biome-ignore lint/style/useNamingConvention: Preact default.
   UNMOUNT = 'unmount',
 }
 
-interface VNode<P = any> extends preactVNode<P> {
+// biome-ignore lint/style/useNamingConvention: Will lead to infinite parsing when run with --write.
+interface VNode<P = any> extends preactNode<P> {
   /** The component instance for this VNode */
   __c: AugmentedComponent
   /** The parent VNode */
@@ -44,7 +51,7 @@ interface OptionsType {
   [OptionsTypes.DIFF](vnode: VNode): void
   [OptionsTypes.DIFFED](vnode: VNode): void
   [OptionsTypes.RENDER](vnode: VNode): void
-  [OptionsTypes.CATCH_ERROR](error: any, vnode: VNode, oldVNode: VNode): void
+  [OptionsTypes.CATCH_ERROR](error: any, vnode: VNode, oldNode: VNode): void
   [OptionsTypes.UNMOUNT](vnode: VNode): void
 }
 
@@ -72,10 +79,10 @@ hook(OptionsTypes.RENDER, (old, vnode) => {
   }
 })
 
-hook(OptionsTypes.CATCH_ERROR, (old, error, vnode, oldVNode) => {
+hook(OptionsTypes.CATCH_ERROR, (old, error, vnode, oldNode) => {
   currentComponent = undefined
   if (old) {
-    old(error, vnode, oldVNode)
+    old(error, vnode, oldNode)
   }
 })
 

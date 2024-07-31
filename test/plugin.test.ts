@@ -4,17 +4,18 @@ import { type Plugin, plugin, state } from '../index'
 
 global.stateDisableBatching = true
 
-const createLogPlugin = (currentMock: Mock<any>) =>
-  ((...configuration) => {
-    let properties: string[]
+const createLogPlugin =
+  (currentMock: Mock<any>) =>
+  (...configuration: string[] | ['initialize']): Plugin<string[]> => {
+    const filterProperties: string[] | undefined = configuration[0] !== 'initialize' ? configuration : undefined
     const traps = {
       get: (property: string) => {
-        if (!properties || (properties ?? []).includes(property)) {
+        if (!filterProperties || filterProperties.includes(property)) {
           currentMock('get', property)
         }
       },
-      set: (property: string, parent: object, value: any) => {
-        if (!properties || (properties ?? []).includes(property)) {
+      set: (property: string, _parent: object, value: any) => {
+        if (!filterProperties || filterProperties.includes(property)) {
           currentMock('set', property, value)
         }
       },
@@ -25,16 +26,11 @@ const createLogPlugin = (currentMock: Mock<any>) =>
       return traps
     }
 
-    // TODO make sure properties is always initialized and only push.
-    properties = configuration
-
-    const initializePlugin = () => {
+    return () => {
       currentMock('initialize')
       return traps
     }
-
-    return initializePlugin
-  }) as Plugin<string[]>
+  }
 
 test('Can create a plugin.', () => {
   const logMock = mock()
@@ -104,12 +100,12 @@ test('Can pass plugin at every stage during initialization.', () => {
 
   expect(() => {
     // @ts-expect-error Results in warning.
-    root.plugin = () => {}
+    root.plugin = () => null
   }).toThrow()
 
   expect(() => {
     // @ts-expect-error Results in warning.
-    root.nested.plugin = () => {}
+    root.nested.plugin = () => null
   }).toThrow()
 })
 
@@ -168,7 +164,7 @@ test('Plugins can be globally registered and will apply to any state.', () => {
     get: (property: string) => {
       logMock('get', property)
     },
-    set: (property: string, parent: object, value: any) => {
+    set: (property: string, _parent: object, value: any) => {
       logMock('set', property, value)
     },
   }
@@ -221,4 +217,19 @@ test('Plugins will be inherited by nested objects.', () => {
   expect(logMock.mock.calls[2][0]).toBe('set')
   expect(logMock.mock.calls[2][1]).toBe('count')
   expect(logMock.mock.calls[2][2]).toBe(4)
+})
+
+test('Log plugin will filter by properties.', () => {
+  const logMock = mock()
+  const myLogPlugin = createLogPlugin(logMock)('in')
+
+  const root = state({ in: 1, out: 2, plugin: myLogPlugin })
+
+  expect(logMock.mock.calls.length).toBe(1)
+  root.out = 3
+  expect(logMock.mock.calls.length).toBe(1)
+  root.in = 2
+  expect(logMock.mock.calls.length).toBe(2)
+  expect(root.in).toBe(2)
+  expect(root.out).toBe(3)
 })

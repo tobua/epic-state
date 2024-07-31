@@ -1,16 +1,15 @@
-import { scheduleUpdate } from './batching'
+import { batch, scheduleUpdate } from './batching'
 import { list } from './data/list'
 import { objectMap, objectSet } from './data/polyfill'
 import { derive, isTracked, track } from './derive'
 import { canPolyfill, canProxy, createBaseObject, isObject, log, newProxy } from './helper'
 import { callPlugins, initializePlugins, plugin, removeAllPlugins } from './plugin'
-import type { AsRef, Listener, Operation, Path, ProxyObject, ProxyState, RemoveListener } from './types'
+import { run } from './run'
+import type { AsRef, Listener, Operation, Path, Plugin, ProxyObject, ProxyState, RemoveListener, RootState } from './types'
 
-export type { Plugin, RootState } from './types'
+export type { Plugin, RootState }
 export { plugin, removeAllPlugins, list }
-// biome-ignore lint/performance/noBarrelFile: Regular export...
-export { run } from './run'
-export { batch } from './batching'
+export { run, batch }
 
 // Shared State, Map with links to all states created.
 const proxyStateMap = new Map<ProxyObject, ProxyState>()
@@ -116,6 +115,7 @@ export function state<T extends object, R extends object = undefined>(initialObj
 
   const baseObject = createBaseObject(initialObject)
   const handler: ProxyHandler<T> = {
+    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Difficult to fix, central part of the application.
     get(target, property, receiver) {
       if (property === 'parent') {
         return parent // Parent access untracked.
@@ -142,6 +142,7 @@ export function state<T extends object, R extends object = undefined>(initialObj
       }
       return value
     },
+    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Difficult to fix, central part of the application.
     set(target, property, value, receiver: object) {
       if (property === 'parent' || property === 'root' || (!initialization && property === 'plugin')) {
         log(`"${property}" is reserved an cannot be changed`, 'warning')
