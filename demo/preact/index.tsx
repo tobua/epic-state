@@ -3,6 +3,8 @@ import { Exmpl } from 'exmpl'
 import { state } from 'epic-state'
 import { connect } from 'epic-state/preact'
 
+// NOTE demo will fail if two versions of preact are bundled, run "bun uninstall preact" in the demo.
+
 const root = state({
   count: 1,
   increment() {

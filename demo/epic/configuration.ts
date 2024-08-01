@@ -13,7 +13,7 @@ export const rsbuild = defineConfig({
     favicon: '../../logo.png',
   },
   output: {
-    assetPrefix: '/',
+    assetPrefix: '/epic-state/',
   },
   tools: {
     rspack: {

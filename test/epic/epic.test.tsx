@@ -178,3 +178,76 @@ test('Child components will always render after any parents.', async () => {
 
   expect(renderCounts).toEqual({ parent: 3, child: 5 }) // TODO child should only add one (epic-jsx fix), rerender argument.
 })
+
+test('Children that have been removed will not be rerendered.', async () => {
+  const root = state({ first: 1, second: 2 })
+
+  plugin(connect)
+
+  function Child() {
+    // TODO still rerendered, but won't result in an error.
+    return <p>child: {root.first}</p>
+  }
+
+  function Parent() {
+    if (root.second > 2) {
+      return <p>parent: {root.second}</p>
+    }
+    return (
+      <div>
+        parent: {root.second}
+        <Child />
+      </div>
+    )
+  }
+
+  const { serialized } = render(<Parent />)
+
+  expect(serialized).toContain('parent: 2')
+  expect(serialized).toContain('child: 1')
+
+  root.second += 1
+
+  const newMarkup = serializeElement()
+
+  expect(newMarkup).toContain('parent: 3')
+  expect(newMarkup).not.toContain('child:')
+})
+
+test('Router setup connected to state is tracked appropriately.', async () => {
+  const pages = {
+    overview: () => <p>overview</p>,
+    about: () => <p>about</p>,
+  }
+  const Router = state({
+    route: 'overview',
+    go(route: string) {
+      Router.route = route
+    },
+    // biome-ignore lint/style/useNamingConvention: To be used as React component.
+    get Page() {
+      return pages[Router.route]
+    },
+  })
+
+  plugin(connect)
+
+  function App() {
+    return (
+      <div>
+        <Router.Page />
+      </div>
+    )
+  }
+
+  const { serialized } = render(<App />)
+
+  expect(serialized).toContain('<p>overview</p>')
+
+  Router.go('about')
+
+  const newMarkup = serializeElement()
+
+  expect(newMarkup).toContain('<p>about</p>')
+  expect(newMarkup).not.toContain('<p>overview</p>')
+})

@@ -12,9 +12,6 @@ export const rsbuild = defineConfig({
     title: 'epic-state Preact Demo',
     favicon: '../../logo.png',
   },
-  output: {
-    assetPrefix: '/',
-  },
   tools: {
     rspack: {
       resolve: {
