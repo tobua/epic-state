@@ -218,6 +218,7 @@ test('Router setup connected to state is tracked appropriately.', async () => {
   const pages = {
     overview: () => <p>overview</p>,
     about: () => <p>about</p>,
+    products: () => <p>products</p>,
   }
   const Router = state({
     route: 'overview',
@@ -246,8 +247,15 @@ test('Router setup connected to state is tracked appropriately.', async () => {
 
   Router.go('about')
 
-  const newMarkup = serializeElement()
+  let newMarkup = serializeElement()
 
   expect(newMarkup).toContain('<p>about</p>')
   expect(newMarkup).not.toContain('<p>overview</p>')
+
+  Router.go('products')
+
+  newMarkup = serializeElement()
+
+  expect(newMarkup).toContain('<p>products</p>')
+  expect(newMarkup).not.toContain('<p>about</p>')
 })

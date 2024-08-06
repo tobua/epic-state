@@ -50,9 +50,10 @@ export const connect: Plugin<string[]> = (initialize) => {
       // Register rerender on current component.
       if (observedProperties.has(parent, property)) {
         const components = observedProperties.get(parent, property)
-        //if (!components?.includes(component.rerender)) {
-        components?.push({ rerender: component.rerender, type })
-        // }
+        const alreadyRegistered = components?.some((value) => value.type === type)
+        if (!alreadyRegistered) {
+          components?.push({ rerender: component.rerender, type })
+        }
       } else if (!observedProperties.has(parent, property)) {
         observedProperties.add(parent, property, { rerender: component.rerender, type })
       }
