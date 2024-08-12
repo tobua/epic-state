@@ -1,6 +1,6 @@
 import { Renderer, type Type, getRoots } from 'epic-jsx'
 import { log } from '../helper'
-import { type Plugin, type RerenderMethod, TupleArrayMap, type Value } from '../types'
+import { type Plugin, type RerenderMethod, TupleArrayMap } from '../types'
 
 export const connect: Plugin<string[]> = (initialize) => {
   if (initialize !== 'initialize') {
@@ -10,7 +10,7 @@ export const connect: Plugin<string[]> = (initialize) => {
   const observedProperties = new TupleArrayMap<object, string, { rerender: RerenderMethod; type: Type }>()
 
   return {
-    set: (property: string, parent: object, value: Value, previousValue: Value) => {
+    set: ({ property, parent, value, previousValue }) => {
       if (value === previousValue) {
         return
       }
@@ -37,7 +37,7 @@ export const connect: Plugin<string[]> = (initialize) => {
       // TODO This will trigger a rerender, probably better to add an interface specific to this.
       getRoots()
     },
-    get: (property: string, parent: object) => {
+    get: ({ property, parent }) => {
       if (!Renderer.current) {
         return // Accessed outside a component.
       }
@@ -57,6 +57,9 @@ export const connect: Plugin<string[]> = (initialize) => {
       } else if (!observedProperties.has(parent, property)) {
         observedProperties.add(parent, property, { rerender: component.rerender, type })
       }
+    },
+    delete: () => {
+      // TODO remove observation and trigger rerender
     },
   }
 }

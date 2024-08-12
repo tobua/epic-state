@@ -1,4 +1,4 @@
-import type { Plugin, PluginActions, Property } from './types'
+import type { CallPluginOptions, Plugin, PluginActions } from './types'
 
 const globalPlugins: (PluginActions | Plugin<['initialize']>)[] = []
 
@@ -14,22 +14,15 @@ export function initializePlugins(state: object & { plugin?: Plugin<any> | Plugi
   return state.plugin
 }
 
-type CallPluginOptions = {
-  type: keyof PluginActions
-  // Use _plugin to access plugins internally (not exposed).
-  target: object & { _plugin?: PluginActions[]; parent?: object }
-  initial?: boolean
-}
-
 // NOTE accessing values in here can also lead to recursive calls.
-export function callPlugins({ type, target, initial = false }: CallPluginOptions, ...values: [Property, object, any?, any?]) {
+export function callPlugins({ type, target, initial = false, ...options }: CallPluginOptions) {
   // Current plugin.
   if (target._plugin) {
     for (const item of target._plugin) {
       const plugin = item[type]
-      if (plugin) {
+      if (plugin && (item.all || options.leaf)) {
         // @ts-ignore Apply can also be used on arrow functions to override the this.
-        plugin.apply(item, values)
+        plugin.call(item, options)
       }
     }
   }
@@ -37,7 +30,7 @@ export function callPlugins({ type, target, initial = false }: CallPluginOptions
   // TODO make plugin inheritance configurable.
   // Recursively invoke plugins found on parents (which are inherited).
   if (target.parent) {
-    callPlugins({ type, target: target.parent }, ...values)
+    callPlugins({ type, target: target.parent, ...options })
   }
 
   if (!initial) {
@@ -48,8 +41,9 @@ export function callPlugins({ type, target, initial = false }: CallPluginOptions
   for (const item of globalPlugins) {
     // @ts-ignore
     const plugin = item[type]
-    if (plugin) {
-      plugin.apply(item, values)
+    // @ts-ignore
+    if (plugin && (item.all || options.leaf)) {
+      plugin.call(item, options)
     }
   }
 }

@@ -5,9 +5,9 @@ import { derive, isTracked, track } from './derive'
 import { canPolyfill, canProxy, createBaseObject, isObject, log, newProxy } from './helper'
 import { callPlugins, initializePlugins, plugin, removeAllPlugins } from './plugin'
 import { run } from './run'
-import type { AsRef, Listener, Operation, Path, Plugin, ProxyObject, ProxyState, RemoveListener, RootState } from './types'
+import type { AsRef, Listener, Operation, Path, Plugin, PluginActions, ProxyObject, ProxyState, RemoveListener, RootState } from './types'
 
-export type { Plugin, RootState }
+export type { Plugin, RootState, PluginActions }
 export { plugin, removeAllPlugins, list }
 export { run, batch }
 
@@ -115,7 +115,6 @@ export function state<T extends object, R extends object = undefined>(initialObj
 
   const baseObject = createBaseObject(initialObject)
   const handler: ProxyHandler<T> = {
-    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Difficult to fix, central part of the application.
     get(target, property, receiver) {
       if (property === 'parent') {
         return parent // Parent access untracked.
@@ -134,10 +133,15 @@ export function state<T extends object, R extends object = undefined>(initialObj
 
       if (!initialization && typeof value !== 'function') {
         notifyUpdate(['get', [property], value])
-        // Only call plugins for leaf access.
-        if (typeof value !== 'object') {
-          callPlugins({ type: 'get', target: receiver, initial: true }, property, receiver ?? root, value)
-        }
+        callPlugins({
+          type: 'get',
+          target: receiver,
+          initial: true,
+          property,
+          parent: receiver ?? root,
+          leaf: typeof value !== 'object',
+          value,
+        })
         track(root ?? receiver, property)
       }
       return value
@@ -201,7 +205,16 @@ export function state<T extends object, R extends object = undefined>(initialObj
       if (!initialization) {
         isTracked(root ?? receiver, property) // Mark changed values as "dirty" before plugins (rerenders).
         notifyUpdate(['set', [property], value, previousValue])
-        scheduleUpdate({ type: 'set', target: receiver, initial: true, property, parent: receiver ?? root, value, previousValue })
+        scheduleUpdate({
+          type: 'set',
+          target: receiver,
+          initial: true,
+          property,
+          parent: receiver ?? root,
+          value,
+          previousValue,
+          leaf: typeof value !== 'object',
+        })
       }
       return true
     },
@@ -211,7 +224,16 @@ export function state<T extends object, R extends object = undefined>(initialObj
       const deleted = Reflect.deleteProperty(target, property)
       if (deleted) {
         notifyUpdate(['delete', [property], previousValue])
-        scheduleUpdate({ type: 'delete', target, initial: true, property, parent: proxyObject ?? root, previousValue })
+        // TODO no receiver, no parent access?
+        scheduleUpdate({
+          type: 'delete',
+          target,
+          initial: true,
+          property,
+          parent: proxyObject ?? root,
+          previousValue,
+          leaf: typeof previousValue !== 'object',
+        })
       }
       return deleted
     },

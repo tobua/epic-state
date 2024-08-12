@@ -1,25 +1,26 @@
 import './setup-dom'
 import { type Mock, expect, mock, test } from 'bun:test'
-import { type Plugin, plugin, state } from '../index'
+import { type Plugin, type PluginActions, plugin, state } from '../index'
 
 global.stateDisableBatching = true
 
 const createLogPlugin =
-  (currentMock: Mock<any>) =>
+  (currentMock: Mock<any>, all = false) =>
   (...configuration: string[] | ['initialize']): Plugin<string[]> => {
     const filterProperties: string[] | undefined = configuration[0] !== 'initialize' ? configuration : undefined
     const traps = {
-      get: (property: string) => {
+      get: ({ property }) => {
         if (!filterProperties || filterProperties.includes(property)) {
           currentMock('get', property)
         }
       },
-      set: (property: string, _parent: object, value: any) => {
+      set: ({ property, value }) => {
         if (!filterProperties || filterProperties.includes(property)) {
           currentMock('set', property, value)
         }
       },
-    }
+      all,
+    } as PluginActions
 
     if (configuration[0] === 'initialize') {
       currentMock('initialize')
@@ -161,13 +162,13 @@ test('Plugins can be globally registered and will apply to any state.', () => {
   const logMock = mock()
   const myLogPlugin = {
     // TODO pass reference to accessed state also.
-    get: (property: string) => {
+    get: ({ property }) => {
       logMock('get', property)
     },
-    set: (property: string, _parent: object, value: any) => {
+    set: ({ property, value }) => {
       logMock('set', property, value)
     },
-  }
+  } as PluginActions
 
   plugin(myLogPlugin)
 
@@ -217,6 +218,26 @@ test('Plugins will be inherited by nested objects.', () => {
   expect(logMock.mock.calls[2][0]).toBe('set')
   expect(logMock.mock.calls[2][1]).toBe('count')
   expect(logMock.mock.calls[2][2]).toBe(4)
+})
+
+test('Node access tracking in addition to leafs can be enabled.', () => {
+  const logMock = mock()
+  const myLogPlugin = createLogPlugin(logMock, true)
+
+  const root = state({ plugin: myLogPlugin, nested: { deeper: { count: 2 } } })
+
+  expect(logMock.mock.calls.length).toBe(1)
+
+  const value = root.nested.deeper.count
+
+  expect(value).toBe(2)
+  expect(logMock.mock.calls.length).toBe(4)
+  expect(logMock.mock.calls[1][0]).toBe('get')
+  expect(logMock.mock.calls[1][1]).toBe('nested')
+  expect(logMock.mock.calls[2][0]).toBe('get')
+  expect(logMock.mock.calls[2][1]).toBe('deeper')
+  expect(logMock.mock.calls[3][0]).toBe('get')
+  expect(logMock.mock.calls[3][1]).toBe('count')
 })
 
 test('Log plugin will filter by properties.', () => {

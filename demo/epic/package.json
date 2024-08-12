@@ -5,9 +5,9 @@
     "types": "tsc"
   },
   "dependencies": {
-    "@rsbuild/core": "^1.0.1-beta.8",
-    "@rsbuild/plugin-react": "^1.0.1-beta.8",
     "epic-jsx": "^0.9.0",
+    "@rsbuild/core": "^1.0.1-beta.11",
+    "@rsbuild/plugin-react": "^1.0.1-beta.11",
     "exmpl": "^3.1.0",
     "typescript": "^5.5.4",
     "zero-configuration": "^0.17.2"

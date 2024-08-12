@@ -96,22 +96,22 @@ const root = state({ count: 1, page: 0, user: '123', plugin: [connect('page', 'u
 Having access to state actions it's possible to encapsulate functionality as a plugin without the need for any changes to the regularly used code.
 
 ```ts
-import { type Plugin } from 'epic-state'
+import { type Plugin, PluginActions } from 'epic-state'
 
 function myConfigurableLogPlugin(...configuration: string[]): Plugin {
   let properties: string[] = []
   const isPropertyIgnored = () => properties.length !== 0 && !properties.includes(property)
 
   const actions = {
-    get: (property: string, parent: object, value: any) =>
+    get: ({ property, value }) =>
       !isPropertyIgnored(property) && console.log(`GET: ${property} as ${value}`),
-    set: (property: string, parent: object, value: any, previousValue: any) => {
+    set: ({ property, value, previousValue }) => {
       if (value === previousValue || isPropertyIgnored(property)) return
       console.log(`SET: ${property} as ${value} from ${previousValue}`)
     },
-    delete: (property: string, parent: object) =>
+    delete: ({ property }) =>
       !isPropertyIgnored(property) && console.log(`DELETE: ${property}`),
-  }
+  } as PluginActions
 
   // Called last by the library when a plugin is added to the state.
   if (configuration[0] === 'initialize') {

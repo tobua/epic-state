@@ -1,27 +1,17 @@
 import { log } from './helper'
 import { callPlugins } from './plugin'
-import type { Property, Value } from './types'
+import type { CallPluginOptions } from './types'
 
 declare global {
   var stateDisableBatching: boolean
 }
 
-interface Update {
-  type: 'set' | 'delete'
-  target: object
-  initial: boolean
-  property: Property
-  parent: object // TODO potentially consolidate target and parent.
-  value?: Value
-  previousValue: Value
-}
-
-const batching: { updates: Update[]; scheduler?: number } = {
+const batching: { updates: CallPluginOptions[]; scheduler?: number } = {
   updates: [],
   scheduler: undefined,
 }
 
-export const scheduleUpdate = (update: Update) => {
+export const scheduleUpdate = (update: CallPluginOptions) => {
   batching.updates.unshift(update) // Most recent update will be processed first, to allow filtering already applied changes.
   if (batching.scheduler === undefined) {
     batching.scheduler = schedule(process)
@@ -92,13 +82,7 @@ function process(deadline: IdleDeadline) {
     maxTries -= 1
     const update = batching.updates.shift()
     if (update) {
-      callPlugins(
-        { type: update.type, target: update.target, initial: update.initial },
-        update.property,
-        update.parent,
-        update.value,
-        update.previousValue,
-      )
+      callPlugins(update)
       // Filter out already applied updates.
       batching.updates = batching.updates.filter(
         (potentialUpdate) => potentialUpdate.property !== update.property || potentialUpdate.parent !== update.parent,

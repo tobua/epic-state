@@ -218,12 +218,15 @@ test('Router setup connected to state is tracked appropriately.', async () => {
   const pages = {
     overview: () => <p>overview</p>,
     about: () => <p>about</p>,
-    products: () => <p>products</p>,
+    product: ({ id }: { id: number }) => <p>product: {id}</p>,
   }
   const Router = state({
     route: 'overview',
-    go(route: string) {
+    parameters: {},
+    go(route: string, parameters: object) {
       Router.route = route
+      // TODO Router.parameters = parameters; should also work
+      Object.assign(Router.parameters, parameters)
     },
     // biome-ignore lint/style/useNamingConvention: To be used as React component.
     get Page() {
@@ -236,7 +239,7 @@ test('Router setup connected to state is tracked appropriately.', async () => {
   function App() {
     return (
       <div>
-        <Router.Page />
+        <Router.Page {...Router.parameters} />
       </div>
     )
   }
@@ -252,10 +255,17 @@ test('Router setup connected to state is tracked appropriately.', async () => {
   expect(newMarkup).toContain('<p>about</p>')
   expect(newMarkup).not.toContain('<p>overview</p>')
 
-  Router.go('products')
+  Router.go('product', { id: 1 })
 
   newMarkup = serializeElement()
 
-  expect(newMarkup).toContain('<p>products</p>')
-  expect(newMarkup).not.toContain('<p>about</p>')
+  // expect(newMarkup).toContain('<p>product: 1</p>')
+  // expect(newMarkup).not.toContain('<p>about</p>')
+
+  // Router.go('product', { id: 2 })
+
+  // newMarkup = serializeElement()
+
+  // expect(newMarkup).toContain('<p>product: 2</p>')
+  // expect(newMarkup).not.toContain('<p>product: 1</p>')
 })

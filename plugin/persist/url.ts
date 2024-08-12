@@ -1,5 +1,5 @@
 import { log } from '../../helper'
-import type { Plugin, Value } from '../../types'
+import type { Plugin, PluginActions, Value } from '../../types'
 
 // Nested object values are not persisted.
 const isTopLevelValue = (value: Value) => typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
@@ -42,13 +42,13 @@ export const persistUrl: Plugin<string[]> = (...configuration) => {
   let properties: string[] = []
 
   const actions = {
-    set: (property: string, _parent: object, value: Value, previousValue: Value) => {
+    set: ({ property, value, previousValue }) => {
       if (value === previousValue || (properties.length !== 0 && !properties.includes(property))) {
         return
       }
       updateUrlParameter(property, value)
     },
-  }
+  } as PluginActions
 
   if (configuration[0] === 'initialize') {
     initializeUrl(configuration[1] as any, properties)

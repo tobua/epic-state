@@ -1,5 +1,5 @@
 import { plugin } from './plugin'
-import { type ObservedProperties, type RerenderMethod, TupleArrayMap } from './types'
+import { type ObservedProperties, type PluginActions, type RerenderMethod, TupleArrayMap } from './types'
 
 const runners: { observedProperties: ObservedProperties; handler: RerenderMethod }[] = []
 let pluginRegistered: (() => void) | undefined
@@ -38,20 +38,20 @@ function observeProperty(property: string, parent: object) {
 export function run(handler: RerenderMethod) {
   if (!pluginRegistered) {
     pluginRegistered = plugin({
-      set: (property: string, parent: object, value: unknown, previousValue: unknown) => {
+      set: ({ property, parent, value, previousValue }) => {
         if (value === previousValue) {
           return
         }
         runHandlersObservingProperty(property, parent)
         // TODO necessary to observe set actions in run()?
       },
-      get: (property: string, parent: object) => {
+      get: ({ property, parent }) => {
         observeProperty(property, parent)
       },
-      delete: (property: string, parent: object) => {
+      delete: ({ property, parent }) => {
         runHandlersObservingProperty(property, parent)
       },
-    })
+    } as PluginActions)
   }
 
   const observedProperties = new TupleArrayMap<object, string, RerenderMethod>()

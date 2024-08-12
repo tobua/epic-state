@@ -1,6 +1,6 @@
 import { type Component, options, type VNode as preactNode } from 'preact'
 import { log } from '../helper'
-import { type Plugin, TupleArrayMap, type Value } from '../types'
+import { type Plugin, type PluginActions, TupleArrayMap } from '../types'
 
 // With preact you can set custom hooks for the render cycle: https://preactjs.com/guide/v10/options
 // While the render hook isn't exposed it can still be added as '__r' and used to access
@@ -101,7 +101,7 @@ export const connect: Plugin<string[]> = (initialize) => {
   const observedProperties = new TupleArrayMap<object, string, () => void>()
 
   return {
-    set: (property: string, parent: object, value: Value, previousValue: Value) => {
+    set: ({ property, parent, value, previousValue }) => {
       if (value === previousValue) {
         return
       }
@@ -120,7 +120,7 @@ export const connect: Plugin<string[]> = (initialize) => {
         }
       }
     },
-    get: (property: string, parent: object) => {
+    get: ({ property, parent }) => {
       if (!currentComponent) {
         return // Accessed outside a component.
       }
@@ -140,5 +140,5 @@ export const connect: Plugin<string[]> = (initialize) => {
         observedProperties.add(parent, property, currentComponent._updater)
       }
     },
-  }
+  } as PluginActions
 }

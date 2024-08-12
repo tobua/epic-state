@@ -87,9 +87,10 @@ export type RootState<T, R> = T extends Set<any>
     }
 
 export type PluginActions = {
-  get?: (property: string, parent: object, value: any) => void
-  set?: (property: string, parent: object, value: any, previousValue: any) => void
-  delete?: (property: string, parent: object) => void
+  get?: (options: { property: string; parent: object; leaf: boolean; value: Value }) => void
+  set?: (options: { property: string; parent: object; leaf: boolean; value: Value; previousValue: Value }) => void
+  delete?: (options: { property: string; parent: object; leaf: boolean }) => void
+  all?: boolean
 }
 
 export type Plugin<T extends any[]> = ((...configuration: T) => Plugin<['initialize']>) | PluginActions
@@ -131,4 +132,16 @@ export class TupleArrayMap<A, B, C> {
   clear() {
     this.observedProperties.clear()
   }
+}
+
+export type CallPluginOptions = {
+  type: keyof PluginActions
+  // Use _plugin to access plugins internally (not exposed).
+  target: object & { _plugin?: PluginActions[]; parent?: object }
+  initial?: boolean
+  property: Property
+  parent: ProxyObject // TODO is this truly the proxy??
+  leaf: boolean
+  value?: Value
+  previousValue?: Value
 }

@@ -1,5 +1,5 @@
 import { log } from '../../helper'
-import type { Plugin, Value } from '../../types'
+import type { Plugin, PluginActions, Value } from '../../types'
 
 type Identifier = string | number
 
@@ -51,7 +51,7 @@ export const persistStorage: Plugin<[{ id: Identifier; prefix?: string; properti
   identifiers.add(identifier)
 
   const actions = {
-    set: (property: string, _parent: object, value: Value, previousValue: Value) => {
+    set: ({ property, value, previousValue }) => {
       if (value === previousValue || (properties.length !== 0 && !properties.includes(property))) {
         return
       }
@@ -59,7 +59,7 @@ export const persistStorage: Plugin<[{ id: Identifier; prefix?: string; properti
       currentValues[property] = value
       window.localStorage.setItem(identifier, JSON.stringify(currentValues))
     },
-  }
+  } as PluginActions
 
   return (...innerConfiguration: any) => {
     if (innerConfiguration[0] !== 'initialize') {
