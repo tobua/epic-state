@@ -20,6 +20,7 @@ jobs:
         run: |
           cd demo/epic
           bun install
+          bun uninstall epic-jsx # Avoid duplicate load of libary.
           bun rsbuild build
       - name: 🚀 Publish Demo
         uses: JamesIves/github-pages-deploy-action@v4
