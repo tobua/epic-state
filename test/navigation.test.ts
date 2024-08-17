@@ -1,11 +1,9 @@
-import { expect, mock, test } from 'bun:test'
-import { type RootState, observe, state } from '../index'
-import { process } from './helper'
+import { expect, test } from 'bun:test'
+import { type RootState, batch, observe, state } from '../index'
 
 global.stateDisableBatching = true
 
-test('Can navigate through state tree using the parent property.', async () => {
-  const subscribeMock = mock()
+test('Can navigate through state tree using the parent property.', () => {
   const initialObject = {
     id: 1,
     nested: { id: 2, nested: { id: 3 } },
@@ -15,7 +13,7 @@ test('Can navigate through state tree using the parent property.', async () => {
   // Custom properties are only accessible when typed accordinly to avoid confusion when working with regular state.
   const root = state(initialObject) as RootState<typeof initialObject, typeof initialObject>
 
-  observe(subscribeMock, root)
+  const observations = observe()
 
   expect(root.id).toBe(1)
   // @ts-expect-error
@@ -26,13 +24,12 @@ test('Can navigate through state tree using the parent property.', async () => {
   // @ts-expect-error
   expect(nestedParent.missing).toBe(undefined)
 
-  await process()
+  batch()
 
-  expect(subscribeMock.mock.calls.length).toBe(1)
-  expect(subscribeMock.mock.calls[0][0].length).toBe(4)
+  expect(observations.length).toBe(3)
 
-  expect(subscribeMock.mock.calls[0][0][2][1]).toEqual(['id'])
-  expect(subscribeMock.mock.calls[0][0][3][1]).toEqual(['missing'])
+  expect(observations[1][2]).toEqual('id')
+  expect(observations[2][2]).toEqual('missing')
 
   expect(root.nested.nested.parent.parent.id).toBe(1)
   expect(root.nested.nested.parent.id).toBe(2)

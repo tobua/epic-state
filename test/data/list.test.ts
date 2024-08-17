@@ -1,6 +1,7 @@
-import { expect, mock, test } from 'bun:test'
+import { expect, test } from 'bun:test'
 import { list, observe, state } from '../../index'
-import { process } from '../helper'
+import { PluginAction } from '../../types'
+import { removeProxyObject, setObservationsOnly } from '../helper'
 
 global.stateDisableBatching = true
 
@@ -16,7 +17,6 @@ test('list: empty list initialized properly.', () => {
 })
 
 test('list: list can be initialized with values, values can be read and are reactive.', async () => {
-  const subscribeMock = mock()
   const counterComplex = (intialCount: number) => {
     const data = {
       nested: {
@@ -34,7 +34,7 @@ test('list: list can be initialized with values, values can be read and are reac
     complexList: list(counterComplex, [3, 4, 5]),
   })
 
-  observe(subscribeMock, root)
+  const observations = observe()
 
   expect(root.simpleList.length).toBe(2)
   expect(root.complexList.length).toBe(3)
@@ -46,22 +46,20 @@ test('list: list can be initialized with values, values can be read and are reac
   // @ts-expect-error
   expect(root.complexList[1].missing).toBe(undefined)
 
-  expect(subscribeMock).not.toHaveBeenCalled()
+  expect(observations.length).toBe(7)
 
   root.simpleList[0].count = 2
   root.complexList[1].nested.count = 8
 
-  await process()
-
   expect(root.simpleList[0].count).toBe(2)
   expect(root.complexList[1].nested.count).toBe(8)
-  expect(subscribeMock).toHaveBeenCalledTimes(1)
+  expect(observations.length).toBe(11)
 
   // TODO are this many calls necessary?
   // TODO possibly revert getter calls later after a set has happened...
-  const setterCalls = subscribeMock.mock.calls[0][0].filter((call) => call[0] === 'set')
-  expect(setterCalls[0]).toEqual(['set', ['simpleList', '0', 'count'], 2, 1])
-  expect(setterCalls[1]).toEqual(['set', ['complexList', '1', 'nested', 'count'], 8, 4])
+  const setOnly = setObservationsOnly(observations)
+  expect(removeProxyObject(setOnly[0])).toEqual([PluginAction.Set, 'count', 2, 1])
+  expect(removeProxyObject(setOnly[1])).toEqual([PluginAction.Set, 'count', 8, 4])
 })
 
 test('list: data structure is an extended array.', () => {
@@ -98,24 +96,21 @@ test('list: all elements can be replaced with replace.', () => {
   expect(root.data[1].count).toBe(2)
 })
 
-test('list: changes to list are observed.', async () => {
-  const observeMock = mock()
+test('list: changes to list are observed.', () => {
   const root = state({ data: list(counter) })
 
-  observe(observeMock, root)
+  const observations = observe()
+
+  expect(observations.length).toBe(0)
 
   root.data.replace([1])
 
-  await process()
-
-  expect(observeMock.mock.calls.length).toBe(1)
+  expect(observations.length).toBe(3)
   expect(root.data.length).toBe(1)
 
   root.data.replace([1, 2])
 
-  await process()
-
-  expect(observeMock.mock.calls.length).toBe(2)
+  expect(observations.length).toBe(8)
   expect(root.data.length).toBe(2)
 })
 

@@ -4,18 +4,31 @@ import { objectMap, objectSet } from './data/polyfill'
 import { derive, isTracked, track } from './derive'
 import { canPolyfill, canProxy, createBaseObject, isObject, log, newProxy } from './helper'
 import { callPlugins, initializePlugins, plugin, removeAllPlugins } from './plugin'
+import { observe } from './plugin/observe'
 import { run } from './run'
-import type { AsRef, Listener, Operation, Path, Plugin, PluginActions, ProxyObject, ProxyState, RemoveListener, RootState } from './types'
+import {
+  type AsRef,
+  type ConfigurablePlugin,
+  type ConfiguredPlugin,
+  type Observation,
+  type ObservationCallback,
+  type Plugin,
+  PluginAction,
+  type PluginActions,
+  type Property,
+  type ProxyObject,
+  type ProxyState,
+  type RootState,
+  type Value,
+} from './types'
 
-export type { Plugin, RootState, PluginActions }
-export { plugin, removeAllPlugins, list }
-export { run, batch }
+export type { Plugin, Property, Value, ConfigurablePlugin, ConfiguredPlugin, RootState, PluginActions, Observation, ObservationCallback }
+export { plugin, removeAllPlugins, list, run, batch, observe }
 
 // Shared State, Map with links to all states created.
 const proxyStateMap = new Map<ProxyObject, ProxyState>()
 const refSet = new WeakSet()
 const proxyCache = new WeakMap<object, ProxyObject>()
-const versionHolder = [1, 1] as [number, number]
 
 // proxy function renamed to state (proxy as hidden implementation detail).
 // @ts-ignore TODO figure out if object will work as expected
@@ -31,88 +44,13 @@ export function state<T extends object, R extends object = undefined>(initialObj
     log('"root" property is reserved on state objects to reference the root', 'warning')
   }
 
-  const plugins = initializePlugins(initialObject)
   derive(initialObject)
   const found = proxyCache.get(initialObject) as T | undefined
   if (found) {
     return found
   }
-  let version = versionHolder[0]
-  const listeners = new Set<Listener>()
-  const notifyUpdate = (operation: Operation, nextVersion = ++versionHolder[0]) => {
-    if (version !== nextVersion) {
-      version = nextVersion
-      // biome-ignore lint/complexity/noForEach: Simple one-liner here.
-      listeners.forEach((listener) => listener(operation, nextVersion))
-    }
-  }
 
-  let checkVersion = versionHolder[1]
-
-  const createPropListener =
-    (prop: string | symbol): Listener =>
-    (operation, nextVersion) => {
-      const newOperation: Operation = [...operation]
-      newOperation[1] = [prop, ...(newOperation[1] as Path)]
-      notifyUpdate(newOperation, nextVersion)
-    }
-  const propProxyStates = new Map<string | symbol, readonly [ProxyState, RemoveListener?]>()
-  const ensureVersion = (nextCheckVersion = ++versionHolder[1]) => {
-    if (checkVersion !== nextCheckVersion && !listeners.size) {
-      checkVersion = nextCheckVersion
-      for (const [propProxyState] of propProxyStates) {
-        // @ts-ignore TODO no tests are using this.
-        const propVersion = propProxyState[1](nextCheckVersion)
-        if (propVersion > version) {
-          version = propVersion
-        }
-      }
-    }
-    return version
-  }
-  const addPropListener = (prop: string | symbol, propProxyState: ProxyState) => {
-    if (process.env.NODE_ENV !== 'production' && propProxyStates.has(prop)) {
-      throw new Error('prop listener already exists')
-    }
-    if (listeners.size) {
-      const removePropListener = propProxyState[2](createPropListener(prop))
-      propProxyStates.set(prop, [propProxyState, removePropListener])
-    } else {
-      propProxyStates.set(prop, [propProxyState])
-    }
-  }
-  const removePropListener = (prop: string | symbol) => {
-    const entry = propProxyStates.get(prop)
-    if (entry) {
-      propProxyStates.delete(prop)
-      entry[1]?.()
-    }
-  }
-  const addListener = (listener: Listener) => {
-    listeners.add(listener)
-    if (listeners.size === 1) {
-      propProxyStates.forEach(([propProxyState, prevRemove], prop) => {
-        if (process.env.NODE_ENV !== 'production' && prevRemove) {
-          throw new Error('remove already exists')
-        }
-        const removeProxyListener = propProxyState[2](createPropListener(prop))
-        propProxyStates.set(prop, [propProxyState, removeProxyListener])
-      })
-    }
-    const removeListener = () => {
-      listeners.delete(listener)
-      if (listeners.size === 0) {
-        propProxyStates.forEach(([propProxyState, removeProxyListener], prop) => {
-          if (removeProxyListener) {
-            removeProxyListener()
-            propProxyStates.set(prop, [propProxyState])
-          }
-        })
-      }
-    }
-    return removeListener
-  }
-
+  let plugins: PluginActions[] = []
   const baseObject = createBaseObject(initialObject)
   const handler: ProxyHandler<T> = {
     get(target, property, receiver) {
@@ -128,13 +66,16 @@ export function state<T extends object, R extends object = undefined>(initialObj
       if (property === '_plugin') {
         return plugins // Internal plugin access.
       }
+      if (property === 'addPlugin') {
+        return (newPlugin: Plugin | PluginActions) =>
+          plugins.push(typeof newPlugin === 'function' ? newPlugin('initialize', proxyObject) : newPlugin) // Add plugins after initialization.
+      }
 
       const value = Reflect.get(target, property, receiver)
 
       if (!initialization && typeof value !== 'function') {
-        notifyUpdate(['get', [property], value])
         callPlugins({
-          type: 'get',
+          type: PluginAction.Get,
           target: receiver,
           initial: true,
           property,
@@ -160,7 +101,6 @@ export function state<T extends object, R extends object = undefined>(initialObj
       ) {
         return true
       }
-      removePropListener(property)
       let nextValue = value
       if (value instanceof Promise) {
         value
@@ -169,14 +109,14 @@ export function state<T extends object, R extends object = undefined>(initialObj
             value.status = 'fulfilled'
             // @ts-ignore
             value.value = result
-            notifyUpdate(['resolve', [property], result])
+            // TODO schedule update PluginAction.Resolve property, result
           })
           .catch((error) => {
             // @ts-ignore
             value.status = 'rejected'
             // @ts-ignore
             value.reason = error
-            notifyUpdate(['reject', [property], error])
+            // TODO schedule update PluginAction.Reject property, error
           })
       } else {
         if (initialization && typeof value === 'function' && value.requiresInitialization) {
@@ -198,19 +138,18 @@ export function state<T extends object, R extends object = undefined>(initialObj
         }
         const childProxyState = !refSet.has(nextValue) && proxyStateMap.get(nextValue)
         if (childProxyState) {
-          addPropListener(property, childProxyState)
+          // TODO what's child proxy state???
         }
       }
       Reflect.set(target, property, nextValue, receiver)
       if (!initialization) {
         isTracked(root ?? receiver, property) // Mark changed values as "dirty" before plugins (rerenders).
-        notifyUpdate(['set', [property], value, previousValue])
         scheduleUpdate({
-          type: 'set',
-          target: receiver,
+          type: PluginAction.Set,
+          target: receiver as ProxyObject,
           initial: true,
           property,
-          parent: receiver ?? root,
+          parent: (receiver ?? root) as ProxyObject,
           value,
           previousValue,
           leaf: typeof value !== 'object',
@@ -220,14 +159,12 @@ export function state<T extends object, R extends object = undefined>(initialObj
     },
     deleteProperty(target, property) {
       const previousValue = Reflect.get(target, property)
-      removePropListener(property)
       const deleted = Reflect.deleteProperty(target, property)
       if (deleted) {
-        notifyUpdate(['delete', [property], previousValue])
         // TODO no receiver, no parent access?
         scheduleUpdate({
-          type: 'delete',
-          target,
+          type: PluginAction.Delete,
+          target: target as ProxyObject,
           initial: true,
           property,
           parent: proxyObject ?? root,
@@ -240,7 +177,7 @@ export function state<T extends object, R extends object = undefined>(initialObj
   }
   const proxyObject = newProxy(baseObject, handler)
   proxyCache.set(initialObject, proxyObject)
-  const proxyState: ProxyState = [baseObject, ensureVersion, addListener]
+  const proxyState: ProxyState = [baseObject]
   proxyStateMap.set(proxyObject, proxyState)
   for (const key of Reflect.ownKeys(initialObject)) {
     const desc = Object.getOwnPropertyDescriptor(initialObject, key) as PropertyDescriptor
@@ -254,61 +191,10 @@ export function state<T extends object, R extends object = undefined>(initialObj
     // This will recursively call the setter trap for any nested properties on the initialObject.
     Object.defineProperty(baseObject, key, desc)
   }
+  // @ts-ignore
+  plugins = initializePlugins(proxyObject, initialObject.plugin)
   initialization = false
   return proxyObject
-}
-
-export function observe<T extends object>(callback: (operations: Operation[]) => void, proxyObject?: T, notifyInSync?: boolean) {
-  const proxyState = proxyStateMap.get(proxyObject as object)
-  if (process.env.NODE_ENV !== 'production' && proxyObject && !proxyState) {
-    log('proxyObject passed to observe() not registered', 'warning')
-    return () => false
-  }
-  // Observe all registered states recursively.
-  if (!proxyObject) {
-    const removeListeners: (() => void)[] = []
-    for (const currentProxyObject of proxyStateMap.keys()) {
-      if (currentProxyObject.root) {
-        continue
-      }
-      const removeListener = observe(callback, currentProxyObject, notifyInSync)
-      removeListeners.push(removeListener)
-    }
-    return () => {
-      // biome-ignore lint/complexity/noForEach: Simple one liner here.
-      removeListeners.forEach((listener) => listener())
-    }
-  }
-  let promise: Promise<void> | undefined
-  const operations: Operation[] = []
-  const addListener = (proxyState as ProxyState)[2]
-  let isListenerActive = false
-  const listener: Listener = (operation: Operation) => {
-    operations.push(operation)
-    if (notifyInSync) {
-      callback(operations.splice(0))
-      return
-    }
-    if (!promise) {
-      promise = Promise.resolve().then(() => {
-        promise = undefined
-        if (isListenerActive) {
-          callback(operations.splice(0))
-        }
-      })
-    }
-  }
-  const removeListener = addListener(listener)
-  isListenerActive = true
-  return () => {
-    isListenerActive = false
-    removeListener()
-  }
-}
-
-export function getVersion(proxyObject: unknown): number | undefined {
-  const proxyState = proxyStateMap.get(proxyObject as object)
-  return proxyState?.[1]()
 }
 
 export function ref<T extends object>(obj: T): T & AsRef {
@@ -317,8 +203,8 @@ export function ref<T extends object>(obj: T): T & AsRef {
 }
 
 export function remove(proxyObject: unknown): boolean {
-  if (proxyStateMap.has(proxyObject as object)) {
-    proxyStateMap.delete(proxyObject as object)
+  if (proxyStateMap.has(proxyObject as ProxyObject)) {
+    proxyStateMap.delete(proxyObject as ProxyObject)
     return true
   }
 

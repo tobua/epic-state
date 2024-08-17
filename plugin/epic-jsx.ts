@@ -1,13 +1,13 @@
 import { Renderer, type Type, getRoots } from 'epic-jsx'
 import { log } from '../helper'
-import { type Plugin, type RerenderMethod, TupleArrayMap } from '../types'
+import { type Plugin, type PluginActions, type Property, type ProxyObject, type RerenderMethod, TupleArrayMap } from '../types'
 
-export const connect: Plugin<string[]> = (initialize) => {
+export const connect: Plugin = (initialize) => {
   if (initialize !== 'initialize') {
     log('connect plugin cannot be configured', 'warning')
   }
 
-  const observedProperties = new TupleArrayMap<object, string, { rerender: RerenderMethod; type: Type }>()
+  const observedProperties = new TupleArrayMap<ProxyObject, Property, { rerender: RerenderMethod; type: Type }>()
 
   return {
     set: ({ property, parent, value, previousValue }) => {
@@ -61,5 +61,5 @@ export const connect: Plugin<string[]> = (initialize) => {
     delete: () => {
       // TODO remove observation and trigger rerender
     },
-  }
+  } as PluginActions
 }

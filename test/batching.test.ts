@@ -1,14 +1,13 @@
+import './setup-dom'
 import { type Mock, expect, mock, test } from 'bun:test'
-import { type Plugin, type PluginActions, batch, state } from '../index'
+import { type PluginActions, type Property, batch, state } from '../index'
 
-// @ts-ignore Necessary to polyfill add not to fail.
-global.window = {}
 global.stateDisableBatching = false
 
 const createLogPlugin =
   (currentMock: Mock<any>) =>
-  (...configuration: string[] | ['initialize']): Plugin<string[]> => {
-    const filterProperties: string[] | undefined = configuration[0] !== 'initialize' ? configuration : undefined
+  (...configuration: Property[] | ['initialize']) => {
+    const filterProperties: Property[] | undefined = configuration[0] !== 'initialize' ? configuration : undefined
     const traps = {
       get: ({ property }) => {
         if (!filterProperties || filterProperties.includes(property)) {

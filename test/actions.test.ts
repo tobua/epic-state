@@ -1,11 +1,10 @@
-import { expect, mock, test } from 'bun:test'
-import { observe, state } from '../index'
-import { process } from './helper'
+import { expect, test } from 'bun:test'
+import { batch, observe, state } from '../index'
+import { PluginAction } from '../types'
 
 global.stateDisableBatching = true
 
-test('Methods added to the state will not be tracked or converted to a proxy.', async () => {
-  const subscribeMock = mock()
+test('Methods added to the state will not be tracked or converted to a proxy.', () => {
   const root = state({
     count: 1,
     increment: () => {
@@ -18,7 +17,7 @@ test('Methods added to the state will not be tracked or converted to a proxy.', 
   // @ts-expect-error
   expect(root.increment.root).toBeUndefined()
 
-  observe(subscribeMock, root)
+  const observations = observe() // TODO observe only root!
 
   expect(root.count).toBe(1) // First 'get'
 
@@ -26,11 +25,10 @@ test('Methods added to the state will not be tracked or converted to a proxy.', 
 
   expect(root.count).toBe(2) // Third 'get'
 
-  await process()
+  batch()
 
-  expect(subscribeMock.mock.calls.length).toBe(1)
-  expect(subscribeMock.mock.calls[0][0].length).toBe(4)
-  expect(subscribeMock.mock.calls[0][0][2][0]).toBe('set')
+  expect(observations.length).toBe(4)
+  expect(observations[2][0]).toBe(PluginAction.Set)
 })
 
 test('Actions can be nested.', async () => {

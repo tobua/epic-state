@@ -43,7 +43,7 @@ test('Object with values is converted to a proxy and state can be changed.', () 
 
   expect(runMock).toHaveBeenCalledTimes(4)
 
-  // @ts-expect-error TODO allow passing options to state for which values can be deleted.
+  // TODO allow passing options to state for which values can be deleted.
   delete root.count
 
   expect(runMock).toHaveBeenCalledTimes(5)

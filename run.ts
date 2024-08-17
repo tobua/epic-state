@@ -1,5 +1,5 @@
 import { plugin } from './plugin'
-import { type ObservedProperties, type PluginActions, type RerenderMethod, TupleArrayMap } from './types'
+import { type ObservedProperties, type PluginActions, type Property, type ProxyObject, type RerenderMethod, TupleArrayMap } from './types'
 
 const runners: { observedProperties: ObservedProperties; handler: RerenderMethod }[] = []
 let pluginRegistered: (() => void) | undefined
@@ -12,7 +12,7 @@ function runHandler(handler: RerenderMethod, observedProperties: ObservedPropert
   runningHandler = undefined
 }
 
-function runHandlersObservingProperty(property: string, parent: object) {
+function runHandlersObservingProperty(property: Property, parent: ProxyObject) {
   for (const runner of runners) {
     const { observedProperties } = runner
     if (!observedProperties.has(parent, property)) {
@@ -27,7 +27,7 @@ function runHandlersObservingProperty(property: string, parent: object) {
   }
 }
 
-function observeProperty(property: string, parent: object) {
+function observeProperty(property: Property, parent: ProxyObject) {
   if (!runningHandler) {
     return // Not currently tracking.
   }
@@ -54,7 +54,7 @@ export function run(handler: RerenderMethod) {
     } as PluginActions)
   }
 
-  const observedProperties = new TupleArrayMap<object, string, RerenderMethod>()
+  const observedProperties = new TupleArrayMap<ProxyObject, Property, RerenderMethod>()
   runHandler(handler, observedProperties)
   runners.push({ observedProperties, handler })
 

@@ -1,17 +1,14 @@
-import type { CallPluginOptions, Plugin, PluginActions } from './types'
+import type { CallPluginOptions, Plugin, PluginActions, ProxyObject } from './types'
 
-const globalPlugins: (PluginActions | Plugin<['initialize']>)[] = []
+const globalPlugins: PluginActions[] = []
 
-export function initializePlugins(state: object & { plugin?: Plugin<any> | Plugin<any>[] }) {
-  if (!state.plugin) {
-    return undefined
+export function initializePlugins(state: ProxyObject, plugin: Plugin | Plugin[]) {
+  if (!plugin) {
+    return [] // Can also add plugins later using state.addPlugin(plugin)
   }
 
-  const plugins = Array.isArray(state.plugin) ? state.plugin : [state.plugin]
-  // @ts-ignore
-  state.plugin = plugins.map((item) => item('initialize', state))
-
-  return state.plugin
+  const plugins = Array.isArray(plugin) ? plugin : [plugin]
+  return plugins.map((item) => item('initialize', state))
 }
 
 // NOTE accessing values in here can also lead to recursive calls.
@@ -39,16 +36,16 @@ export function callPlugins({ type, target, initial = false, ...options }: CallP
 
   // Global plugins.
   for (const item of globalPlugins) {
-    // @ts-ignore
     const plugin = item[type]
-    // @ts-ignore
     if (plugin && (item.all || options.leaf)) {
+      // @ts-ignore
       plugin.call(item, options)
     }
   }
 }
 
-export function plugin(plugin: Plugin<any>) {
+// Register global plugin.
+export function plugin(plugin: Plugin | PluginActions) {
   const initializedPlugin = typeof plugin === 'function' ? plugin('initialize') : plugin
   globalPlugins.push(initializedPlugin)
 
@@ -61,3 +58,5 @@ export function plugin(plugin: Plugin<any>) {
 export function removeAllPlugins() {
   globalPlugins.length = 0
 }
+
+// TODO destroy an existing state object and it's associated plugins.

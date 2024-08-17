@@ -73,6 +73,18 @@ root.count = 2 // => Log: ['get', ['count'], 2, 1]
 delete root.count // => Log: ['delete', ['count'], 2]
 ```
 
+## Data Structures
+
+Using the observe method it's possible to receive notifications to state access or changes anywhere.
+
+```ts
+import { state, list } from 'epic-state'
+
+const task = (name: string) => ({ name, done: false })
+const root = state({ tasks: list(task, ['First Task', 'Second Task']) })
+
+```
+
 ## Plugins
 
 Plugins - much like an observer - receive updates to the state but plugins can also be applied locally and defined for specific actions.

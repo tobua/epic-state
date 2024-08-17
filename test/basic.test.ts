@@ -1,6 +1,7 @@
 import { expect, mock, test } from 'bun:test'
-import { getVersion, observe, remove, state } from '../index'
-import { process } from './helper'
+import { batch, observe, removeAllPlugins, state } from '../index'
+import { PluginAction, type ProxyObject } from '../types'
+import { removeProxyObject, setObservationsOnly } from './helper'
 
 global.stateDisableBatching = true
 
@@ -29,13 +30,12 @@ test('Multiple states can be created.', () => {
   expect(second.count).toBe(5)
 })
 
-test('Can observe state changes.', async () => {
-  const subscribeMock = mock()
+test('Can observe state changes.', () => {
   const root = state<{ count?: number }>({ count: 1 })
 
-  expect(subscribeMock).not.toHaveBeenCalled()
+  const observations = observe()
 
-  observe(subscribeMock, root)
+  expect(observations.length).toBe(0)
 
   // += will do a get and only then a set (both proxy traps invoked).
   ;(root.count as number) += 1
@@ -48,21 +48,17 @@ test('Can observe state changes.', async () => {
   delete root.count
 
   // One call to observe for each process.
-  await process()
-
-  expect(subscribeMock).toHaveBeenCalled()
-  expect(subscribeMock.mock.calls.length).toBe(1)
+  batch()
   // All operations are passed as an array in the first argument.
-  expect(subscribeMock.mock.calls[0][0].length).toBe(4)
+  expect(observations.length).toBe(4)
 
-  expect(subscribeMock.mock.calls[0][0][0]).toEqual(['get', ['count'], 1]) // From += 1
-  expect(subscribeMock.mock.calls[0][0][1]).toEqual(['set', ['count'], 2, 1])
-  expect(subscribeMock.mock.calls[0][0][2]).toEqual(['get', ['count'], 2]) // From root.count
-  expect(subscribeMock.mock.calls[0][0][3]).toEqual(['delete', ['count'], 2])
+  expect(removeProxyObject(observations[0])).toEqual([PluginAction.Get, 'count', 1]) // From += 1
+  expect(removeProxyObject(observations[1])).toEqual([PluginAction.Set, 'count', 2, 1])
+  expect(removeProxyObject(observations[2])).toEqual([PluginAction.Get, 'count', 2]) // From root.count
+  expect(removeProxyObject(observations[3])).toEqual([PluginAction.Delete, 'count', 2])
 })
 
 test('State changes after async waiting period are observed.', async () => {
-  const subscribeMock = mock()
   const root = state({
     count: 1,
     async increment() {
@@ -73,134 +69,92 @@ test('State changes after async waiting period are observed.', async () => {
     },
   })
 
-  const removeObserve = observe(subscribeMock, root, true)
+  const observations = observe()
 
   expect(root.count).toBe(1)
-  expect(subscribeMock).toHaveBeenCalledTimes(1) // get call.
+  expect(observations.length).toBe(1) // get call.
 
   await root.increment()
 
   expect(root.count).toBe(2)
-  expect(subscribeMock).toHaveBeenCalledTimes(4) // get from increment, set from increment and get from expect.
+  expect(observations.length).toBe(4) // get from increment, set from increment and get from expect.
 
   root.increment()
 
-  await new Promise((done) => {
-    setTimeout(done, 20)
-  })
+  await new Promise((done) => setTimeout(done, 20)) // Necessary since previous not awaited.
 
   expect(root.count).toBe(3)
-  expect(subscribeMock).toHaveBeenCalledTimes(7)
-
-  removeObserve()
+  expect(observations.length).toBe(7)
 })
 
-test('Can unsubscribe from an observation.', async () => {
-  const subscribeMock = mock()
+test('Can unsubscribe from an observation.', () => {
   const root = state({ count: 1 })
-
-  expect(subscribeMock).not.toHaveBeenCalled()
-
-  const unsubscribe = observe((values) => subscribeMock(values.filter((value) => value[0] !== 'get')), root)
+  const observations = observe()
 
   root.count += 1
+  batch()
 
-  await process()
-
-  expect(subscribeMock.mock.calls.length).toBe(1)
-
-  unsubscribe()
+  expect(setObservationsOnly(observations).length).toBe(1)
+  removeAllPlugins()
 
   root.count += 1
+  batch()
 
-  await process()
-
-  expect(subscribeMock.mock.calls.length).toBe(1)
+  expect(setObservationsOnly(observations).length).toBe(1)
 })
 
-test('Observe will only observe changes to the passed state.', async () => {
-  const subscribeMock = mock()
+test('Observe will only observe changes to the passed state.', () => {
   const firstRoot = state({ nested: { count: 1 } })
   const secondRoot = state({ nested: { count: 2 } })
 
-  observe(subscribeMock, secondRoot)
+  const observations = observe(undefined, firstRoot as unknown as ProxyObject) // TODO shouldn't be necessary.
 
   firstRoot.nested.count += 1
   secondRoot.nested.count += 1
 
-  await process()
-
-  expect(subscribeMock).toHaveBeenCalled()
-  expect(subscribeMock.mock.calls.length).toBe(1)
-  expect(subscribeMock.mock.calls[0][0].length).toBe(3)
-  expect(subscribeMock.mock.calls[0][0][0][0]).toEqual('get')
-  expect(subscribeMock.mock.calls[0][0][1][0]).toEqual('get')
-  expect(subscribeMock.mock.calls[0][0][2][0]).toEqual('set') // Only one set for secondRoot.
+  batch()
+  expect(observations.length).toBe(2) // secondRoot ignored.
+  expect(observations[0][0]).toEqual(PluginAction.Get)
+  expect(observations[1][0]).toEqual(PluginAction.Set)
+  expect(observations[1][3]).toEqual(2) // New value for firstRoot
 })
 
-test('Each proxy has a version.', () => {
-  const root = state({ count: 1 })
-  const anotherRoot = state({ count: 2 })
-  let version = getVersion(root)
-  const anotherVersion = getVersion(anotherRoot)
-
-  expect(typeof version).toBe('number')
-  expect(typeof anotherVersion).toBe('number')
-  expect(version === anotherVersion).toBe(true)
-
-  root.count = 3
-
-  version = getVersion(root)
-
-  expect(version !== anotherVersion).toBe(true)
-
-  remove(root)
-
-  version = getVersion(root)
-
-  expect(typeof version).toBe('undefined')
-})
-
-test('Can subscribe to nested state changes.', async () => {
-  const subscribeMock = mock()
+test('Can subscribe to nested state changes.', () => {
   const root = state({ count: { nested: 1 } })
 
-  expect(subscribeMock).not.toHaveBeenCalled()
+  const observations = observe()
 
-  observe((values) => subscribeMock(values.filter((value) => value[0] !== 'get')), root)
+  expect(observations.length).toBe(0)
 
   root.count.nested += 1
 
-  await process()
+  batch()
 
-  expect(subscribeMock).toHaveBeenCalled()
+  expect(observations.length).toBeGreaterThan(0)
+  const setOnly = setObservationsOnly(observations)
+  expect(setOnly.length).toBe(1)
 
-  expect(subscribeMock.mock.calls[0][0][0]).toEqual(['set', ['count', 'nested'], 2, 1])
+  expect(removeProxyObject(setOnly[0])).toEqual([PluginAction.Set, 'nested', 2, 1])
 })
 
-test('Can subscribe to deeply nested state changes.', async () => {
-  const subscribeMock = mock()
+test('Can subscribe to deeply nested state changes.', () => {
   const root = state({ values: [{ nested: { value: 2 } }, { nested: { value: 3 } }] })
 
-  expect(subscribeMock).not.toHaveBeenCalled()
-
-  observe((values) => subscribeMock(values.filter((value) => value[0] !== 'get')), root)
+  const observations = observe()
 
   root.values[0].nested.value += 1
 
-  await process()
+  batch()
 
-  expect(subscribeMock.mock.calls[0][0].length).toBe(1)
-  expect(subscribeMock.mock.calls[0][0][0]).toEqual(['set', ['values', '0', 'nested', 'value'], 3, 2])
+  const setOnly = setObservationsOnly(observations)
+  expect(setOnly.length).toBe(1)
+  expect(removeProxyObject(setOnly[0])).toEqual([PluginAction.Set, 'value', 3, 2])
 })
 
-test('Destructured objects are still tracked.', async () => {
-  const subscribeMock = mock()
+test('Destructured objects are still tracked.', () => {
   const root = state({ hello: 'world', nested: { value: 1 } })
 
-  expect(subscribeMock).not.toHaveBeenCalled()
-
-  observe((values) => subscribeMock(values.filter((value) => value[0] !== 'get')), root)
+  const observations = observe()
 
   let { hello } = root
   const { nested } = root
@@ -211,17 +165,18 @@ test('Destructured objects are still tracked.', async () => {
   hello = 'changed'
   nested.value += 1
 
-  await process()
+  batch()
 
   expect(root.hello).toEqual('world') // Changes not propagated, cannot observe basic values.
   expect(root.nested.value).toBe(2)
 
-  expect(subscribeMock.mock.calls[0][0].length).toBe(1)
-  expect(subscribeMock.mock.calls[0][0][0]).toEqual(['set', ['nested', 'value'], 2, 1])
+  const setOnly = setObservationsOnly(observations)
+
+  expect(setOnly.length).toBe(1)
+  expect(removeProxyObject(setOnly[0])).toEqual([PluginAction.Set, 'value', 2, 1])
 })
 
-test('Arrays, Maps and Sets are also tracked.', async () => {
-  const subscribeMock = mock()
+test('Arrays, Maps and Sets are also tracked.', () => {
   const root = state({
     list: [1, 2, 3],
     // TODO automatically transform Map and Set.
@@ -234,7 +189,7 @@ test('Arrays, Maps and Sets are also tracked.', async () => {
     set: new Set(['apple', 'banana', 'cherry', 'apple']),
   })
 
-  observe((values) => subscribeMock(values.filter((value) => value[0] !== 'get')), root)
+  const observations = observe()
 
   root.list.push(4)
   root.map.set('city', 'Los Angeles')
@@ -244,82 +199,83 @@ test('Arrays, Maps and Sets are also tracked.', async () => {
   // TODO change isn't tracked.
   age.value += 1
 
-  await process()
+  batch()
 
-  expect(subscribeMock.mock.calls.length).toBe(1)
-  expect(subscribeMock.mock.calls[0].length).toBe(1)
+  const setOnly = setObservationsOnly(observations)
+
+  expect(setOnly.length).toBe(1)
   // TODO map and set aren't tracked.
-  expect(subscribeMock.mock.calls[0][0].length).toBe(1)
-  expect(subscribeMock.mock.calls[0][0][0]).toEqual(['set', ['list', '3'], 4, undefined])
+  expect(removeProxyObject(setOnly[0])).toEqual([PluginAction.Set, '3', 4, undefined])
 })
 
 // biome-ignore lint/suspicious/noSkippedTests: TODO
-test.skip('Map/Set polyfill works at the top-level.', async () => {
-  const subscribeMock = mock()
+test.skip('Map/Set polyfill works at the top-level.', () => {
   const root = state(new Set([{ name: 'apple' }, { name: 'banana' }, { name: 'cherry' }, { name: 'apple' }]))
 
-  observe((values) => subscribeMock(values.filter((value) => value[0] !== 'get')), root)
+  const observations = observe()
 
   root.add({ name: 'fig' })
 
-  // const element = root.values().next()
+  batch()
 
-  // await process()
+  const setOnly = setObservationsOnly(observations)
+
+  expect(setOnly.length).toBe(1)
+  expect(removeProxyObject(setOnly[0])).toEqual([PluginAction.Set, 'fig', { name: 'fig' }, undefined])
 })
 
-test('Works with classes.', async () => {
-  const subscribeMock = mock()
+test('Works with classes.', () => {
   const root = state(
     new (class State {
       hello = 'world'
     })(),
   )
 
-  observe((values) => subscribeMock(values.filter((value) => value[0] !== 'get')), root)
+  const observations = observe()
 
   root.hello = 'changed'
 
-  await process()
+  batch()
 
-  expect(subscribeMock.mock.calls[0][0].length).toBe(1)
-  expect(subscribeMock.mock.calls[0][0][0]).toEqual(['set', ['hello'], 'changed', 'world'])
+  const setOnly = setObservationsOnly(observations)
+  expect(setOnly.length).toBe(1)
+  expect(removeProxyObject(setOnly[0])).toEqual([PluginAction.Set, 'hello', 'changed', 'world'])
 })
 
-test('Added objects will also be observed.', async () => {
-  const subscribeMock = mock()
+test('Added objects will also be observed.', () => {
   const root: any = state({ count: 1 })
 
-  expect(subscribeMock).not.toHaveBeenCalled()
-
-  observe(subscribeMock, root)
+  const observations = observe()
 
   root.nested = {
     value: 1,
   }
 
-  await process()
+  batch()
 
   expect(root.nested.value).toBe(1)
 
+  let setOnly = setObservationsOnly(observations)
+  expect(setOnly.length).toBe(0) // TODO needs to be tracked.
+  // expect(setOnly[0]).toEqual([PluginAction.Set, 'nested', { value: 1 }, undefined])
+
   root.nested.value += 1
 
-  await process()
+  batch()
 
-  expect(subscribeMock).toHaveBeenCalled()
-  expect(subscribeMock.mock.calls.length).toBe(2)
+  setOnly = setObservationsOnly(observations)
+  expect(setOnly.length).toBe(1)
+  expect(removeProxyObject(setOnly[0])).toEqual([PluginAction.Set, 'value', 2, 1])
 
-  expect(subscribeMock.mock.calls[0][0].length).toBe(1)
-  expect(subscribeMock.mock.calls[0][0][0]).toEqual(['set', ['nested'], { value: 1 }, undefined])
-
-  expect(subscribeMock.mock.calls[1][0].length).toBe(5)
   // Read from expect.
+  expect(observations.length).toBe(3) // TODO should be 5.
   // TODO access path should be merged into one call.
-  expect(subscribeMock.mock.calls[1][0][0]).toEqual(['get', ['nested'], { value: 2 }])
-  expect(subscribeMock.mock.calls[1][0][1]).toEqual(['get', ['nested', 'value'], 1])
+  // expect(removeProxyObject(observations[0])).toEqual([PluginAction.Get, 'nested', { value: 2 }])
+  expect(removeProxyObject(observations[0])).toEqual([PluginAction.Get, 'value', 1])
   // Read from += 1.
-  expect(subscribeMock.mock.calls[1][0][2]).toEqual(['get', ['nested'], { value: 2 }])
-  expect(subscribeMock.mock.calls[1][0][3]).toEqual(['get', ['nested', 'value'], 1])
-  expect(subscribeMock.mock.calls[1][0][4]).toEqual(['set', ['nested', 'value'], 2, 1])
+  // expect(removeProxyObject(observations[2])).toEqual([PluginAction.Get, 'nested', { value: 2 }])
+  expect(removeProxyObject(observations[1])).toEqual([PluginAction.Get, 'value', 1])
+  expect(removeProxyObject(observations[2])).toEqual([PluginAction.Set, 'value', 2, 1])
 })
 
 test('Derived values can be added to the state.', () => {

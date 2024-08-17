@@ -3,19 +3,16 @@ export type Getter = () => Value
 export type RerenderMethod = () => void
 export type AnyFunction = (...args: any[]) => any
 export type AsRef = { $$valtioRef: true }
-export type ProxyObject = object & { root?: ProxyObject; parent?: ProxyObject }
+export type ProxyObject = object & {
+  root?: ProxyObject
+  parent?: ProxyObject
+  _plugin?: PluginActions[]
+  addPlugin: (plugin: Plugin) => void
+}
 export type Property = string | symbol
-export type Path = Property[]
-
-export type Operation =
-  | [op: 'set', path: Path, value: unknown, prevValue: unknown]
-  | [op: 'delete', path: Path, prevValue: unknown]
-  | [op: 'resolve', path: Path, value: unknown]
-  | [op: 'reject', path: Path, error: unknown]
-  | [op: 'get', path: Path, value: unknown]
-
-export type Listener = (operation: Operation, nextVersion: number) => void
-
+export type Path = Property[] // TODO unused
+export type Observation = [PluginAction, ProxyObject, Property, Value, Value?]
+export type ObservationCallback = (observation: Observation) => void
 export type Primitive = string | number | boolean | null | undefined | symbol | bigint
 
 export type SnapshotIgnore =
@@ -39,10 +36,7 @@ export type Snapshot<T> = T extends SnapshotIgnore
       : T
 
 export type HandlePromise = <P extends Promise<any>>(promise: P) => Awaited<P>
-export type RemoveListener = () => void
-export type AddListener = (listener: Listener) => RemoveListener
-
-export type ProxyState = readonly [target: object, ensureVersion: (nextCheckVersion?: number) => number, addListener: AddListener]
+export type ProxyState = readonly [target: object]
 
 type ArrayElementType<E> = E extends (infer U)[] ? U : never
 type SetElementType<E> = E extends Set<infer U> ? U : never
@@ -87,15 +81,24 @@ export type RootState<T, R> = T extends Set<any>
     }
 
 export type PluginActions = {
-  get?: (options: { property: string; parent: object; leaf: boolean; value: Value }) => void
-  set?: (options: { property: string; parent: object; leaf: boolean; value: Value; previousValue: Value }) => void
-  delete?: (options: { property: string; parent: object; leaf: boolean }) => void
+  get?: (options: { property: Property; parent: ProxyObject; leaf: boolean; value: Value }) => void
+  set?: (options: { property: Property; parent: ProxyObject; leaf: boolean; value: Value; previousValue: Value }) => void
+  delete?: (options: { property: Property; parent: ProxyObject; leaf: boolean; previousValue: Value }) => void
   all?: boolean
+  synchronous?: boolean // TODO disable batching.
 }
 
-export type Plugin<T extends any[]> = ((...configuration: T) => Plugin<['initialize']>) | PluginActions
+export enum PluginAction {
+  Get = 'get',
+  Set = 'set',
+  Delete = 'delete',
+}
 
-export type ObservedProperties = TupleArrayMap<object, string, RerenderMethod>
+export type ConfiguredPlugin<T extends any[]> = (...configuration: T) => Plugin
+export type ConfigurablePlugin<T extends any[]> = (...configuration: T | ['initialize', ProxyObject?]) => Plugin | PluginActions
+export type Plugin = (value: 'initialize', state?: ProxyObject) => PluginActions
+
+export type ObservedProperties = TupleArrayMap<ProxyObject, Property, RerenderMethod>
 
 export class TupleArrayMap<A, B, C> {
   protected observedProperties: Map<A, Map<B, C[]>> = new Map()
@@ -135,9 +138,9 @@ export class TupleArrayMap<A, B, C> {
 }
 
 export type CallPluginOptions = {
-  type: keyof PluginActions
+  type: PluginAction
   // Use _plugin to access plugins internally (not exposed).
-  target: object & { _plugin?: PluginActions[]; parent?: object }
+  target: ProxyObject
   initial?: boolean
   property: Property
   parent: ProxyObject // TODO is this truly the proxy??

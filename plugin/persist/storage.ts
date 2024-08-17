@@ -1,19 +1,19 @@
 import { log } from '../../helper'
-import type { Plugin, PluginActions, Value } from '../../types'
+import type { ConfiguredPlugin, PluginActions, Property, Value } from '../../types'
 
 type Identifier = string | number
 
 const identifiers = new Set<Identifier>()
 
-function initializeStorage(state: { [key: string]: Value }, properties: string[], identifier: string) {
-  const defaultState: { [key: string]: Value } = {}
+function initializeStorage(state: { [key: Property]: Value }, properties: Property[], identifier: string) {
+  const defaultState: { [key: Property]: Value } = {}
 
   for (const property of properties) {
     defaultState[property] = state[property]
   }
 
   const existingStore = window.localStorage.getItem(identifier)
-  const data: { [key: string]: Value } = {}
+  const data: { [key: Property]: Value } = {}
 
   // Add existing state properties to the store.
   for (const property of properties) {
@@ -35,9 +35,12 @@ function initializeStorage(state: { [key: string]: Value }, properties: string[]
   window.localStorage.setItem(identifier, JSON.stringify(data))
 }
 
+type Configuration = [{ id: Identifier; prefix?: string; properties: Property[] }]
+
 // Persist state to localStorage or sessionStorage.
-export const persistStorage: Plugin<[{ id: Identifier; prefix?: string; properties: string[] }]> = (...configuration) => {
+export const persistStorage: ConfiguredPlugin<Configuration> = (...configuration: Configuration) => {
   const { id, prefix = 'epic-state-', properties = [] } = configuration[0]
+
   if (typeof id !== 'string' && typeof id !== 'number') {
     log('persistStorage: Missing identifier.', 'error')
   }

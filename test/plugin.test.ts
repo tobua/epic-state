@@ -1,13 +1,15 @@
 import './setup-dom'
-import { type Mock, expect, mock, test } from 'bun:test'
-import { type Plugin, type PluginActions, plugin, state } from '../index'
+import { type Mock, afterEach, expect, mock, test } from 'bun:test'
+import { type PluginActions, type Property, plugin, removeAllPlugins, state } from '../index'
 
 global.stateDisableBatching = true
 
+afterEach(removeAllPlugins)
+
 const createLogPlugin =
   (currentMock: Mock<any>, all = false) =>
-  (...configuration: string[] | ['initialize']): Plugin<string[]> => {
-    const filterProperties: string[] | undefined = configuration[0] !== 'initialize' ? configuration : undefined
+  (...configuration: Property[] | ['initialize']) => {
+    const filterProperties: Property[] | undefined = configuration[0] !== 'initialize' ? configuration : undefined
     const traps = {
       get: ({ property }) => {
         if (!filterProperties || filterProperties.includes(property)) {
@@ -63,7 +65,7 @@ test('Can pass one or more plugins to the state.', () => {
 
   const root = state({ count: 1, plugin: myLogPlugin })
 
-  // @ts-expect-error Plugin not accessible anymore.
+  // TODO Plugin not accessible anymore.
   expect(root.plugin).toBe(undefined)
   expect(logMock.mock.calls.length).toBe(1)
 
@@ -77,7 +79,7 @@ test('Can pass one or more plugins to the state.', () => {
     plugin: [myLogPlugin('tracked'), myLogPlugin],
   })
 
-  // @ts-expect-error Plugin not accessible anymore.
+  // TODO Plugin not accessible anymore.
   expect(rootMultiple.plugin).toBe(undefined)
   expect(logMock.mock.calls.length).toBe(4) // 2 times initialize.
 
@@ -95,7 +97,7 @@ test('Can pass plugin at every stage during initialization.', () => {
   const myLogPlugin = createLogPlugin(logMock)
   const root = state({ count: 1, nested: { count: 2, plugin: myLogPlugin } })
 
-  // @ts-expect-error Plugin not accessible anymore.
+  // TODO Plugin not accessible anymore.
   expect(root.nested.plugin).toBe(undefined)
   expect(logMock).toHaveBeenCalled()
 
@@ -105,7 +107,7 @@ test('Can pass plugin at every stage during initialization.', () => {
   }).toThrow()
 
   expect(() => {
-    // @ts-expect-error Results in warning.
+    // TODO Results in warning.
     root.nested.plugin = () => null
   }).toThrow()
 })
@@ -116,7 +118,7 @@ test('Plugins are initialized and traps accessed.', () => {
 
   const root = state({ count: 1, plugin: myLogPlugin })
 
-  // @ts-expect-error Plugin not accessible anymore.
+  // TODO Plugin not accessible anymore.
   expect(root.plugin).toBe(undefined)
   expect(logMock).toHaveBeenCalled()
   expect(logMock.mock.calls.length).toBe(1)
@@ -140,7 +142,7 @@ test('Plugins also receive updates from nested states.', () => {
 
   const root = state({ count: 1, plugin: myLogPlugin })
 
-  // @ts-expect-error Plugin not accessible anymore.
+  // TODO Plugin not accessible anymore.
   expect(root.plugin).toBe(undefined)
   expect(logMock).toHaveBeenCalled()
   expect(logMock.mock.calls.length).toBe(1)
@@ -204,7 +206,7 @@ test('Plugins will be inherited by nested objects.', () => {
 
   const root = state({ count: 1, plugin: myLogPlugin, nested: { count: 2 } })
 
-  // @ts-expect-error Plugin not accessible anymore.
+  // TODO Plugin not accessible anymore.
   expect(root.plugin).toBe(undefined)
   expect(logMock.mock.calls.length).toBe(1)
 

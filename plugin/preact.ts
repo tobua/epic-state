@@ -1,6 +1,6 @@
 import { type Component, options, type VNode as preactNode } from 'preact'
 import { log } from '../helper'
-import { type Plugin, type PluginActions, TupleArrayMap } from '../types'
+import { type Plugin, type PluginActions, type Property, type ProxyObject, TupleArrayMap } from '../types'
 
 // With preact you can set custom hooks for the render cycle: https://preactjs.com/guide/v10/options
 // While the render hook isn't exposed it can still be added as '__r' and used to access
@@ -93,12 +93,12 @@ hook(OptionsTypes.DIFFED, (old, vnode) => {
   }
 })
 
-export const connect: Plugin<string[]> = (initialize) => {
+export const connect: Plugin = (initialize) => {
   if (initialize !== 'initialize') {
     log('connect plugin cannot be configured', 'warning')
   }
 
-  const observedProperties = new TupleArrayMap<object, string, () => void>()
+  const observedProperties = new TupleArrayMap<ProxyObject, Property, () => void>()
 
   return {
     set: ({ property, parent, value, previousValue }) => {
