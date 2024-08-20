@@ -328,3 +328,47 @@ test('Promises on state are resolved.', async () => {
   expect(await root.promise).toBe('hello')
   expect(root.rejectedPromise).rejects.toEqual(new Error('fail'))
 })
+
+test('Will granuarly replace whole objects.', () => {
+  const root = state<{ nested: { count: number; anotherCount: number }; newProxy?: { count: number; anotherCount?: number } }>({
+    nested: {
+      count: 1,
+      anotherCount: 2,
+    },
+  })
+
+  const observations = observe()
+
+  root.nested.count = 2
+
+  expect(root.nested.count).toBe(2)
+  expect(observations.length).toBe(2) // set + get (from expect)
+
+  root.nested = { count: 3, anotherCount: 3 }
+
+  expect(observations.length).toBe(4)
+  expect(observations[2][2]).toBe('count')
+  expect(observations[3][2]).toBe('anotherCount')
+  expect(root.nested.count).toBe(3)
+
+  root.newProxy = { count: 8 }
+
+  expect(observations.length).toBe(5)
+  expect(observations[4][2]).toBe('count')
+  expect(root.newProxy.count).toBe(8)
+
+  root.newProxy.anotherCount = 3
+
+  expect(observations.length).toBe(7)
+  expect(observations[6][2]).toBe('anotherCount')
+  expect(root.newProxy.anotherCount).toBe(3)
+
+  root.newProxy = { count: 1 }
+
+  expect(observations.length).toBe(10)
+  expect(observations[8][0]).toBe(PluginAction.Set)
+  expect(observations[8][2]).toBe('count')
+  // Existing properties no longer found will be deleted.
+  expect(observations[9][0]).toBe(PluginAction.Delete)
+  expect(observations[9][2]).toBe('anotherCount')
+})

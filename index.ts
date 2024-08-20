@@ -2,7 +2,7 @@ import { batch, scheduleUpdate } from './batching'
 import { list } from './data/list'
 import { objectMap, objectSet } from './data/polyfill'
 import { derive, isTracked, track } from './derive'
-import { canPolyfill, canProxy, createBaseObject, isObject, isSetter, log, newProxy } from './helper'
+import { canPolyfill, canProxy, createBaseObject, isObject, isSetter, log, newProxy, updateProxyValues } from './helper'
 import { callPlugins, initializePlugins, plugin, removeAllPlugins } from './plugin'
 import { observe } from './plugin/observe'
 import { run } from './run'
@@ -94,6 +94,7 @@ export function state<T extends object, R extends object = undefined>(initialObj
         // Skip unchanged values.
         return true
       }
+
       let nextValue = value
       if (value instanceof Promise) {
         value
@@ -115,7 +116,7 @@ export function state<T extends object, R extends object = undefined>(initialObj
         if (initialization && typeof value === 'function' && value.requiresInitialization) {
           // Custom data structures.
           const { data, after } = value(state)
-          nextValue = state(data, receiver, root ?? receiver)
+          nextValue = data
           if (typeof after === 'function') {
             after(nextValue)
           }
@@ -133,6 +134,11 @@ export function state<T extends object, R extends object = undefined>(initialObj
         if (childProxyState) {
           // TODO what's child proxy state???
         }
+      }
+      // Call setters and getters on existing proxy.
+      if (!initialization && typeof value === 'object' && typeof previousValue === 'object' && !Array.isArray(value)) {
+        updateProxyValues(previousValue as unknown as ProxyObject, value)
+        return true
       }
       if (previousValue === undefined && !isSetter(target, property)) {
         Object.defineProperty(target, property, {

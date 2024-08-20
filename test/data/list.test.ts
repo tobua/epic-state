@@ -46,14 +46,14 @@ test('list: list can be initialized with values, values can be read and are reac
   // @ts-expect-error
   expect(root.complexList[1].missing).toBe(undefined)
 
-  expect(observations.length).toBe(7)
+  expect(observations.length).toBe(5)
 
   root.simpleList[0].count = 2
   root.complexList[1].nested.count = 8
 
   expect(root.simpleList[0].count).toBe(2)
   expect(root.complexList[1].nested.count).toBe(8)
-  expect(observations.length).toBe(11)
+  expect(observations.length).toBe(9)
 
   // TODO are this many calls necessary?
   // TODO possibly revert getter calls later after a set has happened...
@@ -105,12 +105,12 @@ test('list: changes to list are observed.', () => {
 
   root.data.replace([1])
 
-  expect(observations.length).toBe(3)
+  expect(observations.length).toBe(1)
   expect(root.data.length).toBe(1)
 
   root.data.replace([1, 2])
 
-  expect(observations.length).toBe(8)
+  expect(observations.length).toBe(3)
   expect(root.data.length).toBe(2)
 })
 

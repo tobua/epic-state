@@ -1,5 +1,5 @@
 import { create } from 'logua'
-import type { Value } from './types'
+import type { ProxyObject, Value } from './types'
 
 export const log = create('epic-state', 'red')
 
@@ -80,3 +80,18 @@ export const createBaseObject = (initialObject: object) => {
 }
 
 export const snapCache = new WeakMap<object, [version: number, snap: unknown]>()
+
+export function updateProxyValues(existingObject: ProxyObject, newObject: ProxyObject) {
+  // Add or update properties from newObject to existingObject
+  for (const key of Reflect.ownKeys(newObject)) {
+    // @ts-ignore
+    existingObject[key as keyof ProxyObject] = newObject[key as keyof ProxyObject]
+  }
+
+  // Remove properties from existingObject that are not in newObject
+  for (const key of Reflect.ownKeys(existingObject)) {
+    if (!(key in newObject)) {
+      delete existingObject[key as keyof ProxyObject]
+    }
+  }
+}
