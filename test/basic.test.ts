@@ -58,6 +58,22 @@ test('Can observe state changes.', () => {
   expect(removeProxyObject(observations[3])).toEqual([PluginAction.Delete, 'count', 2])
 })
 
+test('Changes to non existing properties are tracked.', () => {
+  const root = state<{ count?: string; later?: number }>({ count: undefined })
+
+  const observations = observe()
+
+  expect(observations.length).toBe(0)
+
+  root.count = '5'
+  root.later = 10
+
+  batch()
+
+  expect(root.count).toBe('5')
+  expect(root.later).toBe(10)
+})
+
 test('State changes after async waiting period are observed.', async () => {
   const root = state({
     count: 1,

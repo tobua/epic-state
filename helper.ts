@@ -24,6 +24,11 @@ export const isGetter = (input: object, property: string | symbol): boolean => {
   return !!descriptor && typeof descriptor.get === 'function'
 }
 
+export const isSetter = (input: object, property: string | symbol): boolean => {
+  const descriptor = Object.getOwnPropertyDescriptor(input, property)
+  return !!descriptor && typeof descriptor.set === 'function'
+}
+
 export const reevaluateGetter = (target: { [key: string | symbol]: Value }, property: string | symbol) => {
   const temporaryValue = target[property]
   delete target[property]

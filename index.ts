@@ -2,7 +2,7 @@ import { batch, scheduleUpdate } from './batching'
 import { list } from './data/list'
 import { objectMap, objectSet } from './data/polyfill'
 import { derive, isTracked, track } from './derive'
-import { canPolyfill, canProxy, createBaseObject, isObject, log, newProxy } from './helper'
+import { canPolyfill, canProxy, createBaseObject, isObject, isSetter, log, newProxy } from './helper'
 import { callPlugins, initializePlugins, plugin, removeAllPlugins } from './plugin'
 import { observe } from './plugin/observe'
 import { run } from './run'
@@ -28,7 +28,6 @@ export { plugin, removeAllPlugins, list, run, batch, observe }
 // Shared State, Map with links to all states created.
 const proxyStateMap = new Map<ProxyObject, ProxyState>()
 const refSet = new WeakSet()
-const proxyCache = new WeakMap<object, ProxyObject>()
 
 // proxy function renamed to state (proxy as hidden implementation detail).
 // @ts-ignore TODO figure out if object will work as expected
@@ -45,10 +44,6 @@ export function state<T extends object, R extends object = undefined>(initialObj
   }
 
   derive(initialObject)
-  const found = proxyCache.get(initialObject) as T | undefined
-  if (found) {
-    return found
-  }
 
   let plugins: PluginActions[] = []
   const baseObject = createBaseObject(initialObject)
@@ -93,12 +88,10 @@ export function state<T extends object, R extends object = undefined>(initialObj
         log(`"${property}" is reserved an cannot be changed`, 'warning')
         return false
       }
-      const hasPreviousValue = Reflect.has(target, property)
+
       const previousValue = Reflect.get(target, property, receiver) // Reflect skips other traps.
-      if (
-        hasPreviousValue &&
-        (Object.is(previousValue, value) || (proxyCache.has(value) && Object.is(previousValue, proxyCache.get(value))))
-      ) {
+      if (value === previousValue) {
+        // Skip unchanged values.
         return true
       }
       let nextValue = value
@@ -141,7 +134,15 @@ export function state<T extends object, R extends object = undefined>(initialObj
           // TODO what's child proxy state???
         }
       }
-      Reflect.set(target, property, nextValue, receiver)
+      if (previousValue === undefined && !isSetter(target, property)) {
+        Object.defineProperty(target, property, {
+          value: nextValue,
+          writable: true,
+          configurable: true,
+        })
+      } else {
+        Reflect.set(target, property, nextValue, receiver)
+      }
       if (!initialization) {
         isTracked(root ?? receiver, property) // Mark changed values as "dirty" before plugins (rerenders).
         scheduleUpdate({
@@ -176,7 +177,6 @@ export function state<T extends object, R extends object = undefined>(initialObj
     },
   }
   const proxyObject = newProxy(baseObject, handler)
-  proxyCache.set(initialObject, proxyObject)
   const proxyState: ProxyState = [baseObject]
   proxyStateMap.set(proxyObject, proxyState)
   for (const key of Reflect.ownKeys(initialObject)) {
