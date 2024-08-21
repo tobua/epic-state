@@ -218,54 +218,75 @@ test('Router setup connected to state is tracked appropriately.', async () => {
   const pages = {
     overview: () => <p>overview</p>,
     about: () => <p>about</p>,
-    product: ({ id }: { id: number }) => <p>product: {id}</p>,
+    static: <p>static</p>,
+    product: () => <p>product: {Router.parameters.id}</p>,
+    productFromRouter: ({ router }: { router: { parameters: { id: number } } }) => <p>product: {router.parameters.id}</p>,
   }
+
   const Router = state({
     route: 'overview',
     parameters: {},
-    go(route: string, parameters: object) {
+    go(route: string, parameters: Record<string | number, string | number> = {}) {
       Router.route = route
-      // TODO Router.parameters = parameters; should also work
-      Object.assign(Router.parameters, parameters)
+      Router.parameters = parameters
     },
     // biome-ignore lint/style/useNamingConvention: To be used as React component.
     get Page() {
-      return pages[Router.route]
+      const Component = pages[Router.route]
+
+      if (typeof Component !== 'function') {
+        return () => Component
+      }
+
+      return () => <Component router={Router} />
     },
   })
 
   plugin(connect)
 
   function App() {
-    return (
-      <div>
-        <Router.Page {...Router.parameters} />
-      </div>
-    )
+    return <Router.Page />
   }
 
   const { serialized } = render(<App />)
 
-  expect(serialized).toContain('<p>overview</p>')
+  expect(serialized).toEqual('<body><p>overview</p></body>')
 
   Router.go('about')
 
   let newMarkup = serializeElement()
 
-  expect(newMarkup).toContain('<p>about</p>')
-  expect(newMarkup).not.toContain('<p>overview</p>')
+  expect(newMarkup).toEqual('<body><p>about</p></body>')
+  expect(newMarkup).not.toEqual('<body><p>overview</p></body>')
 
   Router.go('product', { id: 1 })
 
   newMarkup = serializeElement()
 
-  // expect(newMarkup).toContain('<p>product: 1</p>')
-  // expect(newMarkup).not.toContain('<p>about</p>')
+  expect(newMarkup).toEqual('<body><p>product: 1</p></body>')
+  expect(newMarkup).not.toEqual('<body><p>about</p></body>')
 
-  // Router.go('product', { id: 2 })
+  Router.go('product', { id: 2 })
 
-  // newMarkup = serializeElement()
+  newMarkup = serializeElement()
 
-  // expect(newMarkup).toContain('<p>product: 2</p>')
-  // expect(newMarkup).not.toContain('<p>product: 1</p>')
+  expect(newMarkup).toEqual('<body><p>product: 2</p></body>')
+
+  Router.go('productFromRouter', { id: 3 })
+
+  newMarkup = serializeElement()
+
+  expect(newMarkup).toEqual('<body><p>product: 3</p></body>')
+
+  Router.go('productFromRouter', { id: 4 })
+
+  newMarkup = serializeElement()
+
+  expect(newMarkup).toEqual('<body><p>product: 4</p></body>')
+
+  Router.go('static')
+
+  newMarkup = serializeElement()
+
+  expect(newMarkup).toEqual('<body><p>static</p></body>')
 })

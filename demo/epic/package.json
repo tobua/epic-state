@@ -1,6 +1,7 @@
 {
   "name": "demo-epic",
   "scripts": {
+    "check": "biome check --write .",
     "start": "rsbuild dev --open",
     "types": "tsc"
   },

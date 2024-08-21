@@ -1,4 +1,4 @@
-import type { CallPluginOptions, Plugin, PluginActions, ProxyObject } from './types'
+import { type CallPluginOptions, type Plugin, PluginAction, type PluginActions, type ProxyObject } from './types'
 
 const globalPlugins: PluginActions[] = []
 
@@ -17,7 +17,7 @@ export function callPlugins({ type, target, initial = false, ...options }: CallP
   if (target._plugin) {
     for (const item of target._plugin) {
       const plugin = item[type]
-      if (plugin && (item.all || options.leaf)) {
+      if (plugin && (item.all || options.leaf || type === PluginAction.Delete)) {
         // @ts-ignore Apply can also be used on arrow functions to override the this.
         plugin.call(item, options)
       }
@@ -37,7 +37,7 @@ export function callPlugins({ type, target, initial = false, ...options }: CallP
   // Global plugins.
   for (const item of globalPlugins) {
     const plugin = item[type]
-    if (plugin && (item.all || options.leaf)) {
+    if (plugin && (item.all || options.leaf || type === PluginAction.Delete)) {
       // @ts-ignore
       plugin.call(item, options)
     }

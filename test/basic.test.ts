@@ -330,7 +330,7 @@ test('Promises on state are resolved.', async () => {
 })
 
 test('Will granuarly replace whole objects.', () => {
-  const root = state<{ nested: { count: number; anotherCount: number }; newProxy?: { count: number; anotherCount?: number } }>({
+  const root = state<{ nested?: { count: number; anotherCount: number }; newProxy?: { count: number; anotherCount?: number } }>({
     nested: {
       count: 1,
       anotherCount: 2,
@@ -339,10 +339,14 @@ test('Will granuarly replace whole objects.', () => {
 
   const observations = observe()
 
-  root.nested.count = 2
+  if (root.nested) {
+    root.nested.count = 2
 
-  expect(root.nested.count).toBe(2)
-  expect(observations.length).toBe(2) // set + get (from expect)
+    expect(root.nested.count).toBe(2)
+    expect(observations.length).toBe(2) // set + get (from expect)
+  } else {
+    expect(false).toBe(true)
+  }
 
   root.nested = { count: 3, anotherCount: 3 }
 
@@ -371,4 +375,18 @@ test('Will granuarly replace whole objects.', () => {
   // Existing properties no longer found will be deleted.
   expect(observations[9][0]).toBe(PluginAction.Delete)
   expect(observations[9][2]).toBe('anotherCount')
+
+  root.nested = undefined
+
+  expect(observations.length).toBe(11)
+  expect(observations[10][0]).toBe(PluginAction.Set)
+  expect(observations[10][2]).toBe('nested')
+  expect(observations[10][3]).toBe(undefined)
+
+  delete root.newProxy
+
+  expect(observations.length).toBe(12)
+  expect(observations[11][0]).toBe(PluginAction.Delete)
+  expect(observations[11][2]).toBe('newProxy')
+  expect(observations[11][4]).toBe(undefined)
 })
