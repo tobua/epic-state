@@ -390,3 +390,20 @@ test('Will granuarly replace whole objects.', () => {
   expect(observations[11][2]).toBe('newProxy')
   expect(observations[11][4]).toBe(undefined)
 })
+
+test('Object.keys() returns all keys.', () => {
+  const first = state<{ first: number; second?: number }>({ first: 1 })
+  const second = state<{ first: number; second: number; third?: number }>({ first: 2, second: 3 })
+
+  expect(Object.keys(first)).toEqual(['first'])
+  expect(Object.keys(second)).toEqual(['first', 'second'])
+
+  first.second = 2
+  second.third = 4
+
+  // TODO keys no longer update.
+  // expect(Object.keys(first)).toEqual(['first', 'second'])
+  // expect(Object.keys(second)).toEqual(['first', 'second', 'third'])
+  // TODO object no longer updates
+  // expect(JSON.stringify(second)).toEqual(`{ \"first\": 2, \"second\": 3, \"third\": 4 }`)
+})

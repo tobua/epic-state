@@ -4,7 +4,7 @@ import type { RootState } from '../types'
 // Augments an array with elements connected to parent.
 export function list<T extends object, K>(template: (value: K) => T, initialValues: K[] = []) {
   type ExtendedInstance = { remove: () => void }
-  type ExtendedList<A> = { add: (value: A) => void; replace: (values: A[]) => void; size: number }
+  type ExtendedList<A> = { add: (value: A) => void; replace: (values: A[]) => void; size: number; byId: (id: number) => T }
   type InstancePartial<A> = A & Partial<ExtendedInstance>
   type Instance<A> = RootState<A & ExtendedInstance, any>
 
@@ -30,6 +30,10 @@ export function list<T extends object, K>(template: (value: K) => T, initialValu
         data.replace = (values: K[]) => {
           const instances = values.map((value) => extendInstance(state(template(value)), data))
           data.splice(0, data.length, ...instances) // Inline replace array elements.
+        }
+        data.byId = (id: number) => {
+          // @ts-ignore Id must be present on the object to use this.
+          return data.find((item) => typeof item === 'object' && item.id === id) as T
         }
         Object.defineProperty(data, 'size', {
           get() {

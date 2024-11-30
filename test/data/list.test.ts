@@ -137,3 +137,20 @@ test.skip('list: can be used at the top-level.', () => {
   expect(root.length).toBe(1)
   expect(root[0].count).toBe(1)
 })
+
+test('list: can access element by id.', () => {
+  const root = state({
+    items: list(
+      (value: { id: number; title: string }) => value,
+      [
+        { id: 10, title: 'First' },
+        { id: 11, title: 'Second' },
+        { id: 12, title: 'Third' },
+      ],
+    ),
+  })
+
+  expect(root.items.length).toBe(3)
+  expect(root.items[1].id).toBe(11)
+  expect(root.items.byId(11).title).toBe('Second')
+})
