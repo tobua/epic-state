@@ -55,7 +55,7 @@ export const persistStorage: ConfiguredPlugin<Configuration> = (...configuration
 
   const actions = {
     set: ({ property, value, previousValue }) => {
-      if (value === previousValue || (properties.length !== 0 && !properties.includes(property))) {
+      if (value === previousValue || (properties.length > 0 && !properties.includes(property))) {
         return
       }
       const currentValues = JSON.parse(window.localStorage.getItem(identifier) ?? '{}')

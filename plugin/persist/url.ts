@@ -50,7 +50,7 @@ export const persistUrl: ConfigurablePlugin<Configuration> = (...configuration: 
         log('Symbol properties ${property} cannot be added to the URL in persistUrl plugin', 'warning')
         return
       }
-      if (value === previousValue || (properties.length !== 0 && !properties.includes(property))) {
+      if (value === previousValue || (properties.length > 0 && !properties.includes(property))) {
         return
       }
       updateUrlParameter(property, value)

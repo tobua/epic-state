@@ -22,11 +22,11 @@
     "@testing-library/preact": "^3.2.4",
     "@types/bun": "^1.1.14",
     "@types/jsdom": "^21.1.7",
-    "@types/react": "^18.3.12",
+    "@types/react": "^19.0.2",
     "epic-jsx": "^0.9.3",
-    "preact": "^10.25.0",
+    "preact": "^10.25.3",
     "typescript": "^5.7.2",
-    "zero-configuration": "^0.17.5"
+    "zero-configuration": "^0.17.6"
   },
   "peerDependencies": {
     "epic-jsx": ">= 0.6",

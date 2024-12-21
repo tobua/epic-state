@@ -61,7 +61,7 @@ export const isTracked = <U extends object>(parent: U, property: Property) => {
 export function derive<U extends object>(proxy: U) {
   const getters = listGetters(proxy) as { [K in keyof U]: U[K] }
 
-  if (!Object.keys(getters).length) {
+  if (Object.keys(getters).length === 0) {
     return proxy
   }
 

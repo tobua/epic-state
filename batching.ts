@@ -44,11 +44,7 @@ function schedule(callback: IdleRequestCallback) {
   // See react scheduler for better implementation.
   window.requestIdleCallback =
     window.requestIdleCallback ||
-    function idleCallbackPolyfill(
-      innerCallback: IdleRequestCallback,
-      // biome-ignore lint/correctness/noUnusedVariables: Default API, might be needed.
-      options?: IdleRequestOptions,
-    ) {
+    function idleCallbackPolyfill(innerCallback: IdleRequestCallback, _options?: IdleRequestOptions) {
       const start = Date.now()
       setTimeout(() => {
         innerCallback({
@@ -78,7 +74,7 @@ function process(deadline: IdleDeadline) {
 
   let shouldYield = false
   let maxTries = 500
-  while (batching.updates.length && !shouldYield && maxTries > 0) {
+  while (batching.updates.length > 0 && !shouldYield && maxTries > 0) {
     maxTries -= 1
     const update = batching.updates.shift()
     if (update) {
@@ -93,11 +89,11 @@ function process(deadline: IdleDeadline) {
   }
 
   if (maxTries === 0) {
-    console.error('Ran out of tries at process.')
+    log('Ran out of tries at process.', 'warning')
   }
 
   // Continuing to process in next iteration.
-  if (batching.updates.length) {
+  if (batching.updates.length > 0) {
     schedule(process)
   }
 
