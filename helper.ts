@@ -95,3 +95,15 @@ export function updateProxyValues(existingObject: ProxyObject, newObject: ProxyO
     }
   }
 }
+
+export function set<T extends object>(parent: T, property: keyof T) {
+  return (value: any) => {
+    parent[property] = value
+  }
+}
+
+export function toggle<T extends Record<K, boolean>, K extends keyof T>(parent: T, property: K) {
+  return () => {
+    parent[property] = !parent[property] as T[K]
+  }
+}

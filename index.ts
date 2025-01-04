@@ -3,7 +3,7 @@ import { list } from './data/list'
 import { load } from './data/load'
 import { objectMap, objectSet } from './data/polyfill'
 import { derive, isTracked, track } from './derive'
-import { canPolyfill, canProxy, createBaseObject, isObject, isSetter, log, newProxy, updateProxyValues } from './helper'
+import { canPolyfill, canProxy, createBaseObject, isObject, isSetter, log, newProxy, set, toggle, updateProxyValues } from './helper'
 import { callPlugins, initializePlugins, plugin, removeAllPlugins } from './plugin'
 import { observe } from './plugin/observe'
 import { run } from './run'
@@ -24,7 +24,7 @@ import {
 } from './types'
 
 export type { Plugin, Property, Value, ConfigurablePlugin, ConfiguredPlugin, RootState, PluginActions, Observation, ObservationCallback }
-export { plugin, removeAllPlugins, list, load, run, batch, observe }
+export { plugin, removeAllPlugins, list, load, run, batch, observe, set, toggle }
 
 // Shared State, Map with links to all states created.
 const proxyStateMap = new Map<ProxyObject, ProxyState>()

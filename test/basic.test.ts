@@ -1,5 +1,5 @@
 import { expect, mock, test } from 'bun:test'
-import { batch, observe, removeAllPlugins, state } from '../index'
+import { batch, observe, removeAllPlugins, set, state, toggle } from '../index'
 import { PluginAction, type ProxyObject } from '../types'
 import { removeProxyObject, setObservationsOnly } from './helper'
 
@@ -406,4 +406,52 @@ test('Object.keys() returns all keys.', () => {
   // expect(Object.keys(second)).toEqual(['first', 'second', 'third'])
   // TODO object no longer updates
   // expect(JSON.stringify(second)).toEqual(`{ \"first\": 2, \"second\": 3, \"third\": 4 }`)
+})
+
+test('Helpers for JSX value callbacks.', () => {
+  const root = state({
+    count: 1,
+    anotherCount: 2,
+    active: false,
+    open: true,
+    nested: { count: 1, hidden: false },
+  })
+
+  const setterCount = set(root, 'count')
+  // @ts-expect-error
+  set(root, 'missing-count')
+  const setterAnotherCount = set(root, 'anotherCount')
+  const setterNestedCount = set(root.nested, 'count')
+
+  const toggleActive = toggle(root, 'active')
+  const toggleOpen = toggle(root, 'open')
+  // @ts-expect-error
+  toggle(root, 'missing')
+  const toggleNested = toggle(root.nested, 'hidden')
+  // @ts-expect-error
+  toggle(root, 'count')
+
+  setterCount(2)
+  setterAnotherCount(3)
+  setterNestedCount(2)
+
+  toggleActive()
+  toggleOpen()
+  toggleNested()
+
+  expect(root.count).toBe(2)
+  expect(root.anotherCount).toBe(3)
+  expect(root.nested.count).toBe(2)
+  expect(root.active).toBe(true)
+  expect(root.open).toBe(false)
+  expect(root.nested.hidden).toBe(true)
+
+  setterCount(5)
+  setterCount(6)
+  toggleActive()
+  toggleActive()
+  toggleActive()
+
+  expect(root.count).toBe(6)
+  expect(root.active).toBe(false)
 })
