@@ -18,15 +18,15 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@happy-dom/global-registrator": "^16.3.0",
+    "@happy-dom/global-registrator": "^16.7.2",
     "@testing-library/preact": "^3.2.4",
-    "@types/bun": "^1.1.14",
+    "@types/bun": "^1.2.0",
     "@types/jsdom": "^21.1.7",
-    "@types/react": "^19.0.2",
-    "epic-jsx": "^0.9.3",
+    "@types/react": "^19.0.8",
+    "epic-jsx": "^0.9.6",
     "preact": "^10.25.4",
-    "typescript": "^5.7.2",
-    "zero-configuration": "^0.17.6"
+    "typescript": "^5.7.3",
+    "zero-configuration": "^0.18.0"
   },
   "peerDependencies": {
     "epic-jsx": ">= 0.6",

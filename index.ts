@@ -1,3 +1,4 @@
+import { Renderer } from 'epic-jsx' // TODO import should be optional and not required, pass along with connect.
 import { batch, scheduleUpdate } from './batching'
 import { list } from './data/list'
 import { load } from './data/load'
@@ -29,10 +30,15 @@ export { plugin, removeAllPlugins, list, load, run, batch, observe, set, toggle 
 // Shared State, Map with links to all states created.
 const proxyStateMap = new Map<ProxyObject, ProxyState>()
 const refSet = new WeakSet()
+const renderStateMap = new Map<number, ProxyState>()
 
 // proxy function renamed to state (proxy as hidden implementation detail).
 // @ts-ignore TODO figure out if object will work as expected
 export function state<T extends object, R extends object = undefined>(initialObject: T = {} as T, parent?: object, root?: R): T {
+  if (Renderer.current?.id && renderStateMap.has(Renderer.current.id)) {
+    return renderStateMap.get(Renderer.current.id) as T
+  }
+
   let initialization = true
   if (!isObject(initialObject)) {
     log('Only objects can be made observable with state()', 'error')
@@ -186,6 +192,9 @@ export function state<T extends object, R extends object = undefined>(initialObj
   const proxyObject = newProxy(baseObject, handler)
   const proxyState: ProxyState = [baseObject]
   proxyStateMap.set(proxyObject, proxyState)
+  if (Renderer.current?.id) {
+    renderStateMap.set(Renderer.current.id, proxyObject)
+  }
   for (const key of Reflect.ownKeys(initialObject)) {
     const desc = Object.getOwnPropertyDescriptor(initialObject, key) as PropertyDescriptor
     if ('value' in desc) {
