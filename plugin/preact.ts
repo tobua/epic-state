@@ -1,10 +1,18 @@
-import { type Component, options, type VNode as preactNode } from 'preact'
+// @ts-ignore All export paths will be type checked, avoid errors if not installed.
+import { options } from 'preact'
 import { log } from '../helper'
 import { type Plugin, type PluginActions, type Property, type ProxyObject, TupleArrayMap } from '../types'
 
 // With preact you can set custom hooks for the render cycle: https://preactjs.com/guide/v10/options
 // While the render hook isn't exposed it can still be added as '__r' and used to access
 // the currently rendered component reliably.
+
+interface Component<P = {}, S = {}> {
+  setState<K extends keyof S>(
+    state: ((prevState: Readonly<S>, props: Readonly<P>) => Pick<S, K> | Partial<S> | null) | (Pick<S, K> | Partial<S> | null),
+    callback?: () => void,
+  ): void
+}
 
 enum OptionsTypes {
   // biome-ignore lint/style/useNamingConvention: Preact default.
@@ -22,7 +30,7 @@ enum OptionsTypes {
 }
 
 // biome-ignore lint/style/useNamingConvention: Will lead to infinite parsing when run with --write.
-interface VNode<P = any> extends preactNode<P> {
+interface VNode {
   /** The component instance for this VNode */
   __c: AugmentedComponent
   /** The parent VNode */
