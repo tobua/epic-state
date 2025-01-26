@@ -1,10 +1,11 @@
 import { state } from '../index'
 
-export function load<T extends object>(action: () => Promise<{ error?: boolean; data?: T }>) {
-  const container: { loading: boolean; error: boolean; data?: T } = state({
+export function load<T extends object | string | number | boolean>(action: () => Promise<{ error?: boolean; data?: T }>) {
+  const container: { loading: boolean; error: boolean; data: T } = state({
     loading: true,
     error: false,
-    data: undefined,
+    // Up to the user to ensure loading and error properties are checked before accessing data.
+    data: undefined as unknown as T,
   })
 
   async function loadData() {
@@ -12,8 +13,8 @@ export function load<T extends object>(action: () => Promise<{ error?: boolean; 
 
     container.loading = false
 
-    if (error) {
-      container.error = error
+    if (error || !data) {
+      container.error = true
     } else {
       container.data = data
     }

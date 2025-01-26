@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "check": "biome check --write .",
-    "types": "tsc && tsc --noEmit --project ./test/tsconfig.json"
+    "types": "tsc && tsc --project ./test/tsconfig.json"
   },
   "dependencies": {
     "logua": "^3.0.3"
@@ -23,7 +23,7 @@
     "@types/bun": "^1.2.0",
     "@types/jsdom": "^21.1.7",
     "@types/react": "^19.0.8",
-    "epic-jsx": "^0.9.6",
+    "epic-jsx": "^0.9.7",
     "preact": "^10.25.4",
     "typescript": "^5.7.3",
     "zero-configuration": "^0.18.0"
