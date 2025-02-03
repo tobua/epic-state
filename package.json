@@ -10,7 +10,7 @@
     "Daishi Kato (valtio)"
   ],
   "scripts": {
-    "check": "biome check --write .",
+    "check": "biome check --write . && biome check --write --config-path=test ./test/*",
     "types": "tsc && tsc --project ./test/tsconfig.json"
   },
   "dependencies": {
@@ -18,12 +18,12 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@happy-dom/global-registrator": "^16.7.2",
+    "@happy-dom/global-registrator": "^16.8.1",
     "@testing-library/preact": "^3.2.4",
-    "@types/bun": "^1.2.0",
+    "@types/bun": "^1.2.2",
     "@types/jsdom": "^21.1.7",
     "@types/react": "^19.0.8",
-    "epic-jsx": "^0.9.7",
+    "epic-jsx": "^0.9.13",
     "preact": "^10.25.4",
     "typescript": "^5.7.3",
     "zero-configuration": "^0.18.0"
@@ -70,27 +70,41 @@
   "configuration": {
     "gitignore": "bundle",
     "vscode": "biome",
-    "biome": {
-      "extends": "recommended",
-      "linter": {
-        "rules": {
-          "performance": {
-            "noDelete": "off"
-          },
-          "suspicious": {
-            "noExplicitAny": "off"
-          },
-          "complexity": {
-            "noBannedTypes": "off"
+    "biome": [
+      {
+        "extends": "recommended",
+        "linter": {
+          "rules": {
+            "performance": {
+              "noDelete": "off"
+            },
+            "suspicious": {
+              "noExplicitAny": "off"
+            },
+            "complexity": {
+              "noBannedTypes": "off"
+            }
           }
+        },
+        "files": {
+          "ignore": [
+            "demo",
+            "test"
+          ]
         }
       },
-      "files": {
-        "ignore": [
-          "demo"
-        ]
+      {
+        "extends": "test",
+        "folder": "test",
+        "linter": {
+          "rules": {
+            "correctness": {
+              "useJsxKeyInIterable": "off"
+            }
+          }
+        }
       }
-    },
+    ],
     "typescript": [
       {
         "extends": "plugin",
@@ -113,11 +127,14 @@
         ]
       },
       {
-        "extends": "../tsconfig.json",
+        "extends": "plugin",
         "folder": "test",
         "compilerOptions": {
           "strict": false
-        }
+        },
+        "include": [
+          "**/*.test.ts"
+        ]
       },
       {
         "extends": "plugin",

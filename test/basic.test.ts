@@ -224,7 +224,6 @@ test('Arrays, Maps and Sets are also tracked.', () => {
   expect(removeProxyObject(setOnly[0])).toEqual([PluginAction.Set, '3', 4, undefined])
 })
 
-// biome-ignore lint/suspicious/noSkippedTests: TODO
 test.skip('Map/Set polyfill works at the top-level.', () => {
   const root = state(new Set([{ name: 'apple' }, { name: 'banana' }, { name: 'cherry' }, { name: 'apple' }]))
 
@@ -447,6 +446,8 @@ test('Helpers for JSX value callbacks.', () => {
   expect(root.nested.hidden).toBe(true)
 
   setterCount(5)
+  // @ts-expect-error
+  setterCount('7')
   setterCount(6)
   toggleActive()
   toggleActive()

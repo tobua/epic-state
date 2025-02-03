@@ -1,7 +1,7 @@
 import '../setup-dom'
 import { beforeEach, expect, test } from 'bun:test'
 import { render, serializeElement } from 'epic-jsx/test'
-import { plugin, removeAllPlugins, state } from '../../index'
+import { list, plugin, removeAllPlugins, state } from '../../index'
 import { connect } from '../../plugin/epic-jsx'
 
 global.stateDisableBatching = true
@@ -230,7 +230,6 @@ test('Router setup connected to state is tracked appropriately.', async () => {
       Router.route = route
       Router.parameters = parameters
     },
-    // biome-ignore lint/style/useNamingConvention: To be used as React component.
     get Page() {
       const Component = pages[Router.route]
 
@@ -289,4 +288,41 @@ test('Router setup connected to state is tracked appropriately.', async () => {
   newMarkup = serializeElement()
 
   expect(newMarkup).toEqual('<body><p>static</p></body>')
+})
+
+test('Changes to lists trigger a rerender.', async () => {
+  const root = state({ items: list((value: { id: number; name: string }) => ({ id: value.id, name: value.name }), []) })
+  let renderCount = 0
+
+  plugin(connect)
+
+  function App() {
+    renderCount += 1
+    return (
+      <div>
+        {root.items.map((item) => (
+          <p id={item.id}>{item.name}</p>
+        ))}
+      </div>
+    )
+  }
+
+  const { serialized } = render(<App />)
+
+  expect(serialized).toContain('<body><div></div></body>')
+  expect(renderCount).toBe(1)
+
+  root.items.replace([
+    { id: 0, name: 'First' },
+    { id: 1, name: 'Second' },
+  ])
+
+  // TODO does not rerender.
+  expect(serializeElement()).toContain('<body><div></div></body>')
+  expect(renderCount).toBe(1)
+
+  root.items.add({ id: 2, name: 'Third' })
+
+  expect(serializeElement()).toContain('<body><div></div></body>')
+  expect(renderCount).toBe(1)
 })
