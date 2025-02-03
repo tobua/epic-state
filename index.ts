@@ -4,7 +4,20 @@ import { list } from './data/list'
 import { load } from './data/load'
 import { objectMap, objectSet } from './data/polyfill'
 import { derive, isTracked, track } from './derive'
-import { canPolyfill, canProxy, createBaseObject, isObject, isSetter, log, newProxy, set, toggle, updateProxyValues } from './helper'
+import {
+  canPolyfill,
+  canProxy,
+  createBaseObject,
+  isLeaf,
+  isObject,
+  isSetter,
+  log,
+  needsRegister,
+  newProxy,
+  set,
+  toggle,
+  updateProxyValues,
+} from './helper'
 import { callPlugins, initializePlugins, plugin, removeAllPlugins } from './plugin'
 import { observe } from './plugin/observe'
 import { run } from './run'
@@ -82,10 +95,15 @@ export function state<T extends object, R extends object = undefined>(initialObj
           initial: true,
           property,
           parent: receiver ?? root,
-          leaf: typeof value !== 'object',
+          leaf: isLeaf(value),
           value,
         })
         track(root ?? receiver, property)
+      }
+      // Register receiver and property on custom data structures.
+      // TODO should only be done on first access.
+      if (needsRegister(value)) {
+        ;(value as any)._register(receiver ?? root, property)
       }
       return value
     },
@@ -166,7 +184,7 @@ export function state<T extends object, R extends object = undefined>(initialObj
           parent: (receiver ?? root) as ProxyObject,
           value,
           previousValue,
-          leaf: typeof value !== 'object',
+          leaf: isLeaf(value),
         })
       }
       return true

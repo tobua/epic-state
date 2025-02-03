@@ -141,7 +141,7 @@ export type CallPluginOptions = {
   type: PluginAction
   // Use _plugin to access plugins internally (not exposed).
   target: ProxyObject
-  initial?: boolean
+  initial?: boolean // Used for recursive calls to callPlugins.
   property: Property
   parent: ProxyObject // TODO is this truly the proxy??
   leaf: boolean

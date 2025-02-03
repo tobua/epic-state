@@ -291,7 +291,7 @@ test('Router setup connected to state is tracked appropriately.', async () => {
 })
 
 test('Changes to lists trigger a rerender.', async () => {
-  const root = state({ items: list((value: { id: number; name: string }) => ({ id: value.id, name: value.name }), []) })
+  const root = state({ count: 5, items: list((value: { id: number; name: string }) => ({ id: value.id, name: value.name }), []) })
   let renderCount = 0
 
   plugin(connect)
@@ -317,12 +317,11 @@ test('Changes to lists trigger a rerender.', async () => {
     { id: 1, name: 'Second' },
   ])
 
-  // TODO does not rerender.
-  expect(serializeElement()).toContain('<body><div></div></body>')
-  expect(renderCount).toBe(1)
+  expect(serializeElement()).toContain('<body><div><p id="0">First</p><p id="1">Second</p></div></body>')
+  expect(renderCount).toBe(2)
 
   root.items.add({ id: 2, name: 'Third' })
 
-  expect(serializeElement()).toContain('<body><div></div></body>')
-  expect(renderCount).toBe(1)
+  expect(serializeElement()).toContain('<body><div><p id="0">First</p><p id="1">Second</p><p id="2">Third</p></div></body>')
+  expect(renderCount).toBe(3)
 })

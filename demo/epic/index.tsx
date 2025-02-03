@@ -26,6 +26,7 @@ const Button = ({ children, onClick }) => (
 
 function SharedCounter({ initial }: { initial: number }) {
   this.state = state({ count: initial })
+
   return (
     <Button
       onClick={() => {
@@ -54,8 +55,10 @@ function App() {
         Increment {root.count} {root.double}
       </Button>
       <p>Shared component state</p>
+      {/* TODO if you go from top-to-bottom incrementing only the first will work. */}
       <SharedCounter initial={1} />
       <SharedCounter initial={2} />
+      <SharedCounter initial={3} />
     </>
   )
 }
