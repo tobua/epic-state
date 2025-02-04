@@ -1,9 +1,20 @@
 import { render } from 'epic-jsx'
-import { plugin, state } from 'epic-state'
+import { list, plugin, set, state } from 'epic-state'
 import { connect } from 'epic-state/connect'
 import { Exmpl } from 'exmpl'
 
 plugin(connect) // Register global connect plugin for epic-jsx.
+
+const State = state({
+  count: 1,
+  get double() {
+    return State.count * 2
+  },
+  increment: () => {
+    State.count += 1
+  },
+  items: list((value: { name: string }) => value, []),
+})
 
 const Button = ({ children, onClick }) => (
   <button
@@ -11,18 +22,74 @@ const Button = ({ children, onClick }) => (
     style={{
       outline: 'none',
       border: 'none',
-      padding: 20,
+      padding: 5,
       background: '#FF002E',
       color: 'white',
-      fontSize: '200%',
-      borderRadius: 20,
+      fontSize: '120%',
+      borderRadius: 10,
       cursor: 'pointer',
+      minWidth: '100px',
     }}
     onClick={onClick}
   >
     {children}
   </button>
 )
+
+const Input = ({ onValue, ...props }) => {
+  return (
+    <input
+      style={{
+        outline: 'none',
+        border: 'none',
+        padding: 5,
+        background: 'blue',
+        color: 'white',
+        fontSize: '120%',
+        borderRadius: 10,
+      }}
+      // @ts-ignore
+      onInput={(event) => onValue(event.target.value)}
+      {...props}
+    />
+  )
+}
+
+function List() {
+  this.state = state({
+    name: '',
+  })
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <Input placeholder="Name" value={this.state.name} onValue={set(this.state, 'name')} />
+        <Button
+          onClick={() => {
+            State.items.add({ name: this.state.name })
+          }}
+        >
+          Add
+        </Button>
+      </div>
+      <div style={{ display: 'flex', gap: 10 }}>
+        {State.items.map((item) => (
+          <p>{item.name}</p>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ItemsOnly() {
+  return (
+    <div style={{ display: 'flex', gap: 10 }}>
+      {State.items.map((item) => (
+        <p>{item.name}</p>
+      ))}
+    </div>
+  )
+}
 
 function SharedCounter({ initial }: { initial: number }) {
   this.state = state({ count: initial })
@@ -38,27 +105,22 @@ function SharedCounter({ initial }: { initial: number }) {
   )
 }
 
-const root = state({
-  count: 1,
-  get double() {
-    return root.count * 2
-  },
-  increment: () => {
-    root.count += 1
-  },
-})
-
 function App() {
   return (
     <>
-      <Button onClick={root.increment}>
-        Increment {root.count} {root.double}
+      <Button onClick={State.increment}>
+        Increment {State.count} {State.double}
       </Button>
       <p>Shared component state</p>
       {/* TODO if you go from top-to-bottom incrementing only the first will work. */}
-      <SharedCounter initial={1} />
-      <SharedCounter initial={2} />
-      <SharedCounter initial={3} />
+      <div style={{ display: 'flex', gap: 10 }}>
+        <SharedCounter initial={1} />
+        <SharedCounter initial={2} />
+        <SharedCounter initial={3} />
+      </div>
+      <p>List</p>
+      <List />
+      <ItemsOnly />
     </>
   )
 }

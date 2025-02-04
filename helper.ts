@@ -71,7 +71,8 @@ export const defaultHandlePromise = <P extends Promise<any>>(
 }
 
 export const isLeaf = (value: any) => typeof value !== 'object' || (value && Object.hasOwn(value, '_leaf'))
-export const needsRegister = (value: any) => typeof value === 'object' && Object.hasOwn(value, '_leaf') && Object.hasOwn(value, '_register')
+export const needsRegister = (value: any) =>
+  typeof value === 'object' && value && Object.hasOwn(value, '_leaf') && Object.hasOwn(value, '_register')
 
 // NOTE copy is required for proper function.
 export const createBaseObject = (initialObject: object) => {
