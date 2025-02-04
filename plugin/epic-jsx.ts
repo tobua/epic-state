@@ -1,25 +1,25 @@
-import { Renderer, type Type, getRoots } from 'epic-jsx'
+import { type Component, Renderer, getRoots } from 'epic-jsx'
 import { log } from '../helper'
-import { type Plugin, type PluginActions, type Property, type ProxyObject, type RerenderMethod, TupleArrayMap } from '../types'
+import { type Plugin, type PluginActions, type Property, TupleArrayMap } from '../types'
 
 export const connect: Plugin = (initialize) => {
   if (initialize !== 'initialize') {
     log('connect plugin cannot be configured', 'warning')
   }
 
-  const observedProperties = new TupleArrayMap<ProxyObject, Property, { rerender: RerenderMethod; type: Type }>()
+  const observedProperties = new TupleArrayMap<number, Property, Component>()
 
   return {
-    set: ({ property, parent, value, previousValue }) => {
+    set: ({ property, parent: { _id: id }, value, previousValue }) => {
       if (value === previousValue) {
         return
       }
 
-      const components = observedProperties.get(parent, property)
+      const components = observedProperties.get(id, property)
 
       // Remove, as get will be tracked again during render.
-      if (observedProperties.has(parent, property)) {
-        observedProperties.delete(parent, property)
+      if (observedProperties.has(id, property)) {
+        observedProperties.delete(id, property)
       }
 
       // Trigger rerender on components.
@@ -27,9 +27,9 @@ export const connect: Plugin = (initialize) => {
       if (components) {
         for (const component of components) {
           // Check if already rendered
-          if (!renderedComponents.has(component.type)) {
+          if (!renderedComponents.has(component.id)) {
             component.rerender()
-            renderedComponents.add(component.type) // Mark as rendered
+            renderedComponents.add(component.id) // Mark as rendered
           }
         }
       }
@@ -37,25 +37,25 @@ export const connect: Plugin = (initialize) => {
       // TODO This will trigger a rerender, probably better to add an interface specific to this.
       getRoots()
     },
-    get: ({ property, parent }) => {
+    get: ({ property, parent: { _id: id } }) => {
       if (!Renderer.current) {
         return // Accessed outside a component.
       }
-      const { component, type } = Renderer.current
+      const { component } = Renderer.current
       if (!component?.rerender) {
         log('Cannot rerender epic-jsx component', 'warning')
         return
       }
 
       // Register rerender on current component.
-      if (observedProperties.has(parent, property)) {
-        const components = observedProperties.get(parent, property)
-        const alreadyRegistered = components?.some((value) => value.type === type)
+      if (observedProperties.has(id, property)) {
+        const components = observedProperties.get(id, property)
+        const alreadyRegistered = components?.some((value) => value.id === component.id)
         if (!alreadyRegistered) {
-          components?.push({ rerender: component.rerender, type })
+          components?.push(component)
         }
-      } else if (!observedProperties.has(parent, property)) {
-        observedProperties.add(parent, property, { rerender: component.rerender, type })
+      } else {
+        observedProperties.add(id, property, component)
       }
     },
     delete: () => {

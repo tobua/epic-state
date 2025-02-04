@@ -7,6 +7,7 @@ export type ProxyObject = object & {
   root?: ProxyObject
   parent?: ProxyObject
   _plugin?: PluginActions[]
+  _id: number
   addPlugin: (plugin: Plugin) => void
 }
 export type Property = string | symbol

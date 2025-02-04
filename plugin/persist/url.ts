@@ -31,7 +31,7 @@ function initializeUrl(state: ProxyObject, properties: string[]) {
   // Override URL parameters with initial state.
   for (const [key, value] of Object.entries(state)) {
     if (Object.hasOwn(state, key) && isTopLevelValue(value) && key !== 'plugin' && (properties.length === 0 || properties.includes(key))) {
-      queryParams.set(key, value as string)
+      queryParams.set(key, String(value))
     }
   }
 

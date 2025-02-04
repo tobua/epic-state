@@ -112,7 +112,6 @@ function App() {
         Increment {State.count} {State.double}
       </Button>
       <p>Shared component state</p>
-      {/* TODO if you go from top-to-bottom incrementing only the first will work. */}
       <div style={{ display: 'flex', gap: 10 }}>
         <SharedCounter initial={1} />
         <SharedCounter initial={2} />

@@ -67,6 +67,7 @@ export function state<T extends object, R extends object = undefined>(initialObj
 
   let plugins: PluginActions[] = []
   const baseObject = createBaseObject(initialObject)
+  const id = Math.floor(Math.random() * 1000000) // Unique identifier for proxy objects.
   const handler: ProxyHandler<T> = {
     get(target, property, receiver) {
       if (property === 'parent') {
@@ -80,6 +81,9 @@ export function state<T extends object, R extends object = undefined>(initialObj
       }
       if (property === '_plugin') {
         return plugins // Internal plugin access.
+      }
+      if (property === '_id') {
+        return id
       }
       if (property === 'addPlugin') {
         return (newPlugin: Plugin | PluginActions) =>
