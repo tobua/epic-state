@@ -106,11 +106,30 @@ export function set<T extends object, K extends keyof T>(parent: T, property: K)
   }
 }
 
+export function setValue<T extends object, K extends keyof T>(parent: T, property: K, cast?: (value: string) => T[K]) {
+  return (event: { target: { value: string } }) => {
+    parent[property] = cast ? cast(event.target.value) : (event.target.value as T[K])
+  }
+}
+
 export function toggle<T extends Record<K, boolean>, K extends keyof T>(parent: T, property: K, propagate = false) {
-  return (event?: Event) => {
+  return (event?: { stopPropagation: Function }) => {
     if (event && !propagate) {
       event.stopPropagation()
     }
     parent[property] = !parent[property] as T[K]
+  }
+}
+
+export function multipleInstancesWarning() {
+  if (process.env.NODE_ENV === 'production') {
+    return
+  }
+
+  // Ensure plugin is only loaded once from a single source (will not work properly otherwise).
+  if (typeof global.__epicState !== 'undefined') {
+    log('Multiple instances of epic-state have been loaded, plugin might not work as expected', 'warning')
+  } else {
+    global.__epicState = true
   }
 }

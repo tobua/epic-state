@@ -1,7 +1,7 @@
 import '../setup-dom'
 import { beforeEach, expect, test } from 'bun:test'
 import { render, serializeElement } from 'epic-jsx/test'
-import { list, plugin, removeAllPlugins, state } from '../../index'
+import { list, plugin, removeAllPlugins, set, setValue, state, toggle } from '../../index'
 import { connect } from '../../plugin/epic-jsx'
 
 global.stateDisableBatching = true
@@ -301,7 +301,7 @@ test('Changes to lists trigger a rerender.', async () => {
     return (
       <div>
         {root.items.map((item) => (
-          <p id={item.id}>{item.name}</p>
+          <p id={String(item.id)}>{item.name}</p>
         ))}
       </div>
     )
@@ -324,4 +324,54 @@ test('Changes to lists trigger a rerender.', async () => {
 
   expect(serializeElement()).toContain('<body><div><p id="0">First</p><p id="1">Second</p><p id="2">Third</p></div></body>')
   expect(renderCount).toBe(3)
+})
+
+test('Helpers for JSX value callbacks.', () => {
+  const root = state({
+    count: 1,
+    active: false,
+    name: '',
+  })
+
+  plugin(connect)
+
+  function CutomButton({ value, onValue, ...props }) {
+    return (
+      <button onClick={() => onValue(value + 1)} {...props}>
+        Increment
+      </button>
+    )
+  }
+
+  function App() {
+    return (
+      <div>
+        <button id="toggle" onClick={toggle(root, 'active')}>
+          Toggle
+        </button>
+        <input id="value" onChange={setValue(root, 'name')} />
+        <CutomButton id="count" value={root.count} onValue={set(root, 'count')} />
+      </div>
+    )
+  }
+
+  const { serialized } = render(<App />)
+
+  expect(serialized).toEqual(
+    '<body><div><button id="toggle">Toggle</button><input id="value" /><button id="count">Increment</button></div></body>',
+  )
+
+  document.getElementById('toggle').click()
+  const input = document.getElementById('value') as HTMLInputElement
+  input.value = 'hello'
+  input.dispatchEvent(new Event('change', { bubbles: true }))
+  document.getElementById('count').click()
+
+  expect(serializeElement()).toEqual(
+    '<body><div><button id="toggle">Toggle</button><input id="value" /><button id="count">Increment</button></div></body>',
+  )
+
+  expect(root.count).toBe(2)
+  expect(root.name).toBe('hello')
+  expect(root.active).toBe(true)
 })

@@ -15,6 +15,7 @@ import {
   needsRegister,
   newProxy,
   set,
+  setValue,
   toggle,
   updateProxyValues,
 } from './helper'
@@ -38,7 +39,7 @@ import {
 } from './types'
 
 export type { Plugin, Property, Value, ConfigurablePlugin, ConfiguredPlugin, RootState, PluginActions, Observation, ObservationCallback }
-export { plugin, removeAllPlugins, list, load, run, batch, observe, set, toggle }
+export { plugin, removeAllPlugins, list, load, run, batch, observe, set, toggle, setValue }
 
 // Shared State, Map with links to all states created.
 const proxyStateMap = new Map<ProxyObject, ProxyState>()
@@ -47,12 +48,20 @@ const renderStateMap = new Map<number, ProxyState>()
 
 // proxy function renamed to state (proxy as hidden implementation detail).
 // @ts-ignore TODO figure out if object will work as expected
-export function state<T extends object, R extends object = undefined>(initialObject: T = {} as T, parent?: object, root?: R): T {
+export function state<T extends object, R extends object = undefined>(
+  initialObject: T | (() => T) = {} as T,
+  parent?: object,
+  root?: R,
+): T {
   if (Renderer.current?.id && renderStateMap.has(Renderer.current.id)) {
     return renderStateMap.get(Renderer.current.id) as T
   }
 
   let initialization = true
+  if (typeof initialObject === 'function') {
+    // biome-ignore lint/style/noParameterAssign: Much easier in this case.
+    initialObject = initialObject()
+  }
   if (!isObject(initialObject)) {
     log('Only objects can be made observable with state()', 'error')
   }

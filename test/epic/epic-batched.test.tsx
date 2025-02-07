@@ -1,5 +1,6 @@
 import '../setup-dom'
 import { beforeEach, expect, test } from 'bun:test'
+import type { Component } from 'epic-jsx'
 import { render, serializeElement } from 'epic-jsx/test'
 import { batch, plugin, removeAllPlugins, state } from '../../index'
 import { connect } from '../../plugin/epic-jsx'
@@ -59,4 +60,45 @@ test('Combinations of variously stacked components will not be rendered more tha
 
   expect(serializeElement()).toEqual('<body><p>count: 4 8</p></body>')
   expect(renderCount).toBe(3)
+})
+
+test('Component state is only initialized once.', () => {
+  const Components = {}
+  let initializationCount = 0
+  const getState = (count: number) => ({
+    count,
+    empty: ++initializationCount,
+  })
+
+  plugin(connect)
+
+  function Id(this: Component<ReturnType<typeof getState>>, { initial, ...props }) {
+    this.state = state(() => getState(initial))
+    Components[initial] = this
+    // @ts-expect-error
+    const notString: string = this.state.count
+    return <p {...props}>{notString}</p>
+  }
+
+  function App(this: Component) {
+    return (
+      <div>
+        <Id initial={1} />
+        <Id initial={2} />
+        <Id initial={3} />
+      </div>
+    )
+  }
+
+  const { serialized } = render(<App />)
+
+  expect(serialized).toEqual('<body><div><p>1</p><p>2</p><p>3</p></div></body>')
+  expect(initializationCount).toBe(3)
+
+  Components[1].rerender()
+  Components[2].rerender()
+  Components[3].rerender()
+
+  expect(serializeElement()).toEqual('<body><div><p>1</p><p>2</p><p>3</p></div></body>')
+  expect(initializationCount).toBe(3)
 })

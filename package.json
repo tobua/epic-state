@@ -18,12 +18,12 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@happy-dom/global-registrator": "^16.8.1",
+    "@happy-dom/global-registrator": "^17.0.0",
     "@testing-library/preact": "^3.2.4",
     "@types/bun": "^1.2.2",
     "@types/jsdom": "^21.1.7",
     "@types/react": "^19.0.8",
-    "epic-jsx": "^0.9.15",
+    "epic-jsx": "^0.10.1",
     "preact": "^10.25.4",
     "typescript": "^5.7.3",
     "zero-configuration": "^0.18.0"
@@ -101,6 +101,9 @@
           "rules": {
             "correctness": {
               "useJsxKeyInIterable": "off"
+            },
+            "a11y": {
+              "useButtonType": "off"
             }
           }
         }

@@ -1,3 +1,8 @@
+declare global {
+  // Avoids loading plugin multiple times in development mode.
+  var __epicState: boolean
+}
+
 export type Value = any
 export type Getter = () => Value
 export type RerenderMethod = () => void
