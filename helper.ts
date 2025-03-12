@@ -106,6 +106,12 @@ export function set<T extends object, K extends keyof T>(parent: T, property: K)
   }
 }
 
+export function setTo<T extends object, K extends keyof T>(parent: T, property: K, value: T[K]) {
+  return () => {
+    parent[property] = value
+  }
+}
+
 export function setValue<T extends object, K extends keyof T>(parent: T, property: K, cast?: (value: string) => T[K]) {
   return (event: { target: { value: string } }) => {
     parent[property] = cast ? cast(event.target.value) : (event.target.value as T[K])

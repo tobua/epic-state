@@ -1,5 +1,5 @@
 import { expect, mock, test } from 'bun:test'
-import { batch, observe, removeAllPlugins, set, state, toggle } from '../index'
+import { batch, observe, removeAllPlugins, set, setTo, setValue, state, toggle } from '../index'
 import { PluginAction, type ProxyObject } from '../types'
 import { removeProxyObject, setObservationsOnly } from './helper'
 
@@ -455,4 +455,21 @@ test('Helpers for JSX value callbacks.', () => {
 
   expect(root.count).toBe(6)
   expect(root.active).toBe(false)
+
+  const setTo5 = setTo(root, 'count', 5)
+  const setValueString = setValue(root, 'count')
+  const setValueCasted = setValue(root, 'count', (value) => Number(value))
+
+  setTo5()
+
+  expect(root.count).toBe(5)
+
+  setValueString({ target: { value: '8' } })
+
+  // @ts-expect-error
+  expect(root.count).toBe('8')
+
+  setValueCasted({ target: { value: '8' } }) // This isn't typed, as event always string.
+
+  expect(root.count).toBe(8)
 })

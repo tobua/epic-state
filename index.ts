@@ -15,6 +15,7 @@ import {
   needsRegister,
   newProxy,
   set,
+  setTo,
   setValue,
   toggle,
   updateProxyValues,
@@ -39,7 +40,7 @@ import {
 } from './types'
 
 export type { Plugin, Property, Value, ConfigurablePlugin, ConfiguredPlugin, RootState, PluginActions, Observation, ObservationCallback }
-export { plugin, removeAllPlugins, list, load, run, batch, observe, set, toggle, setValue }
+export { plugin, removeAllPlugins, list, load, run, batch, observe, set, setTo, toggle, setValue }
 
 // Shared State, Map with links to all states created.
 const proxyStateMap = new Map<ProxyObject, ProxyState>()
