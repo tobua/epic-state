@@ -37,8 +37,6 @@ test('Derived values will receive updated values in connected rendering methods.
 
   root.increment()
 
-  expect(renderCount).toBe(2)
-
   expect(serializeElement()).toEqual('<body><p>count: 4</p></body>')
   expect(renderCount).toBe(2)
 
@@ -374,4 +372,86 @@ test('Helpers for JSX value callbacks.', () => {
   expect(root.count).toBe(2)
   expect(root.name).toBe('hello')
   expect(root.active).toBe(true)
+})
+
+test('Connect can be applied to local state and will not track global state.', async () => {
+  let renderCount = 0
+  const root = state({
+    count: 1,
+    innerCount: {
+      count: 1,
+      get triple() {
+        return root.innerCount.count * 3
+      },
+      increment() {
+        root.innerCount.count += 1
+      },
+      plugin: [connect],
+      deepInnerCount: {
+      count: 1,
+      get quadruple() {
+        return root.innerCount.deepInnerCount.count * 4
+      },
+      increment() {
+        root.innerCount.deepInnerCount.count += 1
+      },
+
+    }
+    },
+    get double() {
+      return root.count * 2
+    },
+    increment() {
+      this.count += 1
+    },
+  })
+  const secondRoot = state({
+    count: 1,
+    get double() {
+      return secondRoot.count * 2
+    },
+    increment() {
+      secondRoot.count += 1
+    },
+  })
+
+  function Counter() {
+    renderCount += 1
+    return <p>{root.double} {root.innerCount.triple} {root.innerCount.deepInnerCount.quadruple} {secondRoot.double}</p>
+  }
+
+  const { serialized } = render(<Counter />)
+
+  expect(serialized).toEqual('<body><p>2 3 4 2</p></body>')
+  expect(renderCount).toBe(1)
+
+  root.increment()
+
+  // Untracked, top level.
+  expect(serializeElement()).toEqual('<body><p>2 3 4 2</p></body>')
+  expect(renderCount).toBe(1)
+
+  root.innerCount.increment()
+
+  // Tracked, lower level, pulls in previous top level change.
+  expect(serializeElement()).toEqual('<body><p>4 6 4 2</p></body>')
+  expect(renderCount).toBe(2)
+
+  secondRoot.increment()
+
+  // Untracked other root.
+  expect(serializeElement()).toEqual('<body><p>4 6 4 2</p></body>')
+  expect(renderCount).toBe(2)
+
+  root.increment()
+
+  // Untracked, top level.
+  expect(serializeElement()).toEqual('<body><p>4 6 4 2</p></body>')
+  expect(renderCount).toBe(2)
+
+  root.innerCount.deepInnerCount.increment()
+
+  // Tracked, below lower level tracked and pulls in previous changes.
+  expect(serializeElement()).toEqual('<body><p>6 6 8 4</p></body>')
+  expect(renderCount).toBe(3)
 })

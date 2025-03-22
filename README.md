@@ -100,7 +100,7 @@ plugin(connect)
 // Add plugin to a local state.
 const root = state({ count: 1, plugin: [connect] })
 // Connect with configuration.
-const root = state({ count: 1, page: 0, user: '123', plugin: [connect('page', 'user')] })
+const root = state({ count: 1, page: 0, user: '123', plugin: [persistUrl('page', 'user')] })
 ```
 
 ## Build Your Own Plugin
