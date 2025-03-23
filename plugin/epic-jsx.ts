@@ -2,12 +2,38 @@ import { type Component, Renderer, getRoots } from 'epic-jsx'
 import { log } from '../helper'
 import { type Plugin, type PluginActions, type Property, TupleArrayMap } from '../types'
 
+const connections: TupleArrayMap<number, Property, Component>[] = []
+
+export function debug() {
+  const lines: string[] = []
+  for (const [index, observedProperties] of connections.entries()) {
+    const keys = observedProperties.list()
+    let line = ''
+    line += `connect() ${index} - `
+    for (const key of keys) {
+      line += `State #${key[0]}: `
+      const properties = [...key[1].entries()]
+      for (const property of properties) {
+        line += `"${String(property[0])}"`
+        const components = property[1]
+        for (const component of components) {
+          line += ` ${component.id} `
+        }
+      }
+    }
+    lines.push(line)
+  }
+  return lines.join('\n')
+}
+
 export const connect: Plugin = (initialize) => {
   if (initialize !== 'initialize') {
     log('connect plugin cannot be configured', 'warning')
   }
 
   const observedProperties = new TupleArrayMap<number, Property, Component>()
+
+  connections.push(observedProperties)
 
   return {
     set: ({ property, parent: { _id: id }, value, previousValue }) => {

@@ -141,6 +141,10 @@ export class TupleArrayMap<A, B, C> {
   clear() {
     this.observedProperties.clear()
   }
+
+  list() {
+    return [...this.observedProperties.entries()]
+  }
 }
 
 export type CallPluginOptions = {

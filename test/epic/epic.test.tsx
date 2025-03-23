@@ -2,7 +2,7 @@ import '../setup-dom'
 import { beforeEach, expect, test } from 'bun:test'
 import { render, serializeElement } from 'epic-jsx/test'
 import { list, plugin, removeAllPlugins, set, setValue, state, toggle } from '../../index'
-import { connect } from '../../plugin/epic-jsx'
+import { connect, debug } from '../../plugin/epic-jsx'
 
 global.stateDisableBatching = true
 
@@ -454,4 +454,31 @@ test('Connect can be applied to local state and will not track global state.', a
   // Tracked, below lower level tracked and pulls in previous changes.
   expect(serializeElement()).toEqual('<body><p>6 6 8 4</p></body>')
   expect(renderCount).toBe(3)
+})
+
+test('Can debug connected components.', async () => {
+  plugin(connect)
+
+  const root = state({
+    count: 1,
+    get double() {
+      return root.count * 2
+    },
+    increment() {
+      this.count += 1
+    },
+  })
+
+  function Counter() {
+    return <p>count: {root.double}</p>
+  }
+  const { serialized } = render(<Counter />)
+
+  expect(serialized).toEqual('<body><p>count: 2</p></body>')
+
+  const output = debug()
+
+  expect(output).toContain('double')
+  expect(output).toContain('triple')
+  expect(output).toContain('quadruple')
 })
