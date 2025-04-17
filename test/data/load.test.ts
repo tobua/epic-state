@@ -32,5 +32,5 @@ test('load: empty load initialized properly.', async () => {
   expect(root.loadWithData.error).toBe(false)
   expect(root.loadWithData.loading).toBe(false)
   expect(root.loadWithData.data).toBe('Hello world')
-  expect(root.loadWithoutData.error).toBe(true)
+  expect(root.loadWithoutData.error).toBe(false)
 })
