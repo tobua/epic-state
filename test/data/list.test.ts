@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test'
+import { expectTypeOf } from 'expect-type'
 import { list, observe, state } from '../../index'
 import { PluginAction } from '../../types'
 import { removeProxyObject, setObservationsOnly } from '../helper'
@@ -152,4 +153,15 @@ test('list: can access element by id.', () => {
   expect(root.items.length).toBe(3)
   expect(root.items[1].id).toBe(11)
   expect(root.items.byId(11).title).toBe('Second')
+})
+
+test('list: types are inferred properly.', () => {
+  const root = state({
+    firstList: list(() => ({ count: 1 })),
+    secondList: list((count: number) => ({ string: 'a', number: count }), [1, 2]),
+  })
+
+  expectTypeOf(root.firstList[0].count).toBeNumber()
+  expectTypeOf(root.secondList[0].string).toBeString()
+  expectTypeOf(root.secondList[0].number).toBeNumber()
 })

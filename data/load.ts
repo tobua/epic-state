@@ -1,6 +1,6 @@
 import { state } from '../index'
 
-export function load<T extends object | string | number | boolean>(action: () => Promise<{ error?: boolean | string; data?: T }>) {
+export function load<T>(action: () => Promise<{ error?: boolean | string; data?: T }>) {
   const container: { loading: boolean; error: boolean | string; data: T } = state({
     loading: true,
     error: false,

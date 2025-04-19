@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test'
+import { expectTypeOf } from 'expect-type'
 import { load, state } from '../../index'
 import { wait } from '../helper'
 
@@ -24,6 +25,11 @@ test('load: empty load initialized properly.', async () => {
   expect(root.loadWithoutData.loading).toBe(true)
   expect(root.loadWithoutData.error).toBe(false)
   expect(root.loadWithoutData.data).not.toBeDefined()
+
+  expectTypeOf(root.emptyLoad.loading).toBeBoolean()
+  expectTypeOf(root.emptyLoad.error).toEqualTypeOf<string | boolean>()
+  expectTypeOf(root.emptyLoad.data).toEqualTypeOf<unknown>()
+  expectTypeOf(root.loadWithData.data).toEqualTypeOf<string>()
 
   await wait(0.1)
 

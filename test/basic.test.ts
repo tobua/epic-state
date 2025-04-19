@@ -1,4 +1,5 @@
 import { expect, mock, test } from 'bun:test'
+import { expectTypeOf } from 'expect-type'
 import { batch, observe, removeAllPlugins, set, setTo, setValue, state, toggle } from '../index'
 import { PluginAction, type ProxyObject } from '../types'
 import { removeProxyObject, setObservationsOnly } from './helper'
@@ -472,4 +473,14 @@ test('Helpers for JSX value callbacks.', () => {
   setValueCasted({ target: { value: '8' } }) // This isn't typed, as event always string.
 
   expect(root.count).toBe(8)
+})
+
+test('Types on state are inferred properly.', () => {
+  const root = state({ number: 1, string: 'a', boolean: true, object: { nested: { string: 'b' } } })
+
+  expectTypeOf(root.number).toBeNumber()
+  expectTypeOf(root.string).toBeString()
+  expectTypeOf(root.boolean).toBeBoolean()
+  expectTypeOf(root.object).toBeObject()
+  expectTypeOf(root.object.nested.string).toBeString()
 })
